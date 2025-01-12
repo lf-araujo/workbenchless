@@ -669,137 +669,134 @@ Although knowing to work in Emacs is not required (since which-key is active, an
 * Developer amenities
 
 #+begin_src emacs-lisp :tangle yes :results output none
-    ;;; This will try to use tree-sitter modes for many languages. Please run
-    ;;;
-    ;;;   M-x treesit-install-language-grammar
-    ;;;
-    ;;; Before trying to use a treesit mode.
+      ;;; This will try to use tree-sitter modes for many languages. Please run
+      ;;;
+      ;;;   M-x treesit-install-language-grammar
+      ;;;
+      ;;; Before trying to use a treesit mode.
 
-    ;;; Contents:
-    ;;;
-    ;;;  - Built-in config for developers
-    ;;;  - Version Control
-    ;;;  - Common file types
-    ;;;  - Eglot, the built-in LSP client for Emacs
+      ;;; Contents:
+      ;;;
+      ;;;  - Built-in config for developers
+      ;;;  - Version Control
+      ;;;  - Common file types
+      ;;;  - Eglot, the built-in LSP client for Emacs
 
-    ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-    ;;;
-    ;;;   Built-in config for developers
-    ;;;
-    ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+      ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+      ;;;
+      ;;;   Built-in config for developers
+      ;;;
+      ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
   (setq treesit-language-source-alist
-        '((r . ("https://github.com/r-lib/tree-sitter-r" "main" "src")))
-        '((nim . ("https://github.com/alaviss/tree-sitter-nim" "main" "src"))))
+        '((r . ("https://github.com/r-lib/tree-sitter-r" "main" "src"))
+          (nim . ("https://github.com/alaviss/tree-sitter-nim" "main" "src"))))
 
+  (use-package emacs
+    :config
+    ;; Treesitter config
 
-    (use-package emacs
-      :config
-      ;; Treesitter config
+    ;; Tell Emacs to prefer the treesitter mode
+    ;; You'll want to run the command `M-x treesit-install-language-grammar' before editing.
+    (setq major-mode-remap-alist
+          '((yaml-mode . yaml-ts-mode)
+            (bash-mode . bash-ts-mode)
+            (js2-mode . js-ts-mode)
+            (typescript-mode . typescript-ts-mode)
+            (json-mode . json-ts-mode)
+            ;;  (nim-mode . nim-ts-mode)
+            (css-mode . css-ts-mode)
+            (python-mode . python-ts-mode)))
+    :hook
+    ;; Auto parenthesis matching
+    (prog-mode . electric-pair-mode))
 
-      ;; Tell Emacs to prefer the treesitter mode
-      ;; You'll want to run the command `M-x treesit-install-language-grammar' before editing.
-      (setq major-mode-remap-alist
-            '((yaml-mode . yaml-ts-mode)
-              (bash-mode . bash-ts-mode)
-              (js2-mode . js-ts-mode)
-              (typescript-mode . typescript-ts-mode)
-              (json-mode . json-ts-mode)
-	    ;;  (nim-mode . nim-ts-mode)
-              (css-mode . css-ts-mode)
-              (python-mode . python-ts-mode)))
-      :hook
-      ;; Auto parenthesis matching
-      (prog-mode . electric-pair-mode))
+      ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+      ;;;
+      ;;;   Version Control
+      ;;;
+      ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-    ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-    ;;;
-    ;;;   Version Control
-    ;;;
-    ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+  ;; Magit: best Git client to ever exist
+  (use-package magit
+    :ensure t
+    :bind (("C-x g" . magit-status)))
 
-    ;; Magit: best Git client to ever exist
-    (use-package magit
-      :ensure t
-      :bind (("C-x g" . magit-status)))
+      ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+      ;;;
+      ;;;   Common file types
+      ;;;
+      ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-    ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-    ;;;
-    ;;;   Common file types
-    ;;;
-    ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+  (use-package markdown-mode
+    :hook ((markdown-mode . visual-line-mode)))
 
-    (use-package markdown-mode
-      :hook ((markdown-mode . visual-line-mode)))
+  (use-package yaml-mode
+    :ensure t)
 
-    (use-package yaml-mode
-      :ensure t)
+  (use-package json-mode
+    :ensure t)
 
-    (use-package json-mode
-      :ensure t)
+  ;; Emacs ships with a lot of popular programming language modes. If it's not
+  ;; built in, you're almost certain to find a mode for the language you're
+  ;; looking for with a quick Internet search.
 
-    ;; Emacs ships with a lot of popular programming language modes. If it's not
-    ;; built in, you're almost certain to find a mode for the language you're
-    ;; looking for with a quick Internet search.
+      ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+      ;;;
+      ;;;   Eglot, the built-in LSP client for Emacs
+      ;;;
+      ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-    ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-    ;;;
-    ;;;   Eglot, the built-in LSP client for Emacs
-    ;;;
-    ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+  ;; Helpful resources:
+  ;;
+  ;;  - https://www.masteringemacs.org/article/seamlessly-merge-multiple-documentation-sources-eldoc
 
-    ;; Helpful resources:
-    ;;
-    ;;  - https://www.masteringemacs.org/article/seamlessly-merge-multiple-documentation-sources-eldoc
+  (use-package eglot
+    ;; no :ensure t here because it's built-in
+    :defer t
+    ;; Configure hooks to automatically turn-on eglot for selected modes
+    :custom
+    (eglot-send-changes-idle-time 0.1)
+    (eglot-extend-to-xref t)              ; activate Eglot in referenced non-project files
 
-    (use-package eglot
-      ;; no :ensure t here because it's built-in
-      :defer t
-      ;; Configure hooks to automatically turn-on eglot for selected modes
-      :custom
-      (eglot-send-changes-idle-time 0.1)
-      (eglot-extend-to-xref t)              ; activate Eglot in referenced non-project files
+    :config
+    (fset #'jsonrpc--log-event #'ignore)  ; massive perf boost---don't log every event
+    ;; Sometimes you need to tell Eglot where to find the language server
+    ;; (add-to-list 'eglot-server-programs
+    ;;              '(haskell-mode . ("haskell-language-server-wrapper" "--lsp")))
+    (setq eglot-stay-out-of '(company))
 
-      :config
-      (fset #'jsonrpc--log-event #'ignore)  ; massive perf boost---don't log every event
-      ;; Sometimes you need to tell Eglot where to find the language server
-      ;; (add-to-list 'eglot-server-programs
-      ;;              '(haskell-mode . ("haskell-language-server-wrapper" "--lsp")))
-      (setq eglot-stay-out-of '(company))
+    (defun company-R-objects--prefix ()
+      (unless (ess-inside-string-or-comment-p)
+        (let ((start (ess-symbol-start)))
+          (when start
+            (buffer-substring-no-properties start (point))))))
 
-      (defun company-R-objects--prefix ()
-        (unless (ess-inside-string-or-comment-p)
-          (let ((start (ess-symbol-start)))
-            (when start
-              (buffer-substring-no-properties start (point))))))
+    (defun company-R-objects--candidates (arg)
+      (let ((proc (ess-get-next-available-process)))
+        (when proc
+          (with-current-buffer (process-buffer proc)
+            (all-completions arg (ess--get-cached-completions arg))))))
 
-      (defun company-R-objects--candidates (arg)
-        (let ((proc (ess-get-next-available-process)))
-          (when proc
-            (with-current-buffer (process-buffer proc)
-              (all-completions arg (ess--get-cached-completions arg))))))
+    (defun company-capf-with-R-objects--check-prefix (prefix)
+      (cl-search "$" prefix))
 
-      (defun company-capf-with-R-objects--check-prefix (prefix)
-        (cl-search "$" prefix))
-
-      (defun company-capf-with-R-objects (command &optional arg &rest ignored)
-        (interactive (list 'interactive))
-        (cl-case command
-          (interactive (company-begin-backend 'company-R-objects))
-          (prefix (company-R-objects--prefix))
-          (candidates (if (company-capf-with-R-objects--check-prefix arg)
-                          (company-R-objects--candidates arg)
-                        (company-capf command arg)))
-          (annotation (if (company-capf-with-R-objects--check-prefix arg)
-                          "R-object"
-                        (company-capf command arg)))
-          (kind (if (company-capf-with-R-objects--check-prefix arg)
-                    'field
-                  (company-capf command arg)))
-          (doc-buffer (company-capf command arg))))
-      )
-
-
+    (defun company-capf-with-R-objects (command &optional arg &rest ignored)
+      (interactive (list 'interactive))
+      (cl-case command
+        (interactive (company-begin-backend 'company-R-objects))
+        (prefix (company-R-objects--prefix))
+        (candidates (if (company-capf-with-R-objects--check-prefix arg)
+                        (company-R-objects--candidates arg)
+                      (company-capf command arg)))
+        (annotation (if (company-capf-with-R-objects--check-prefix arg)
+                        "R-object"
+                      (company-capf command arg)))
+        (kind (if (company-capf-with-R-objects--check-prefix arg)
+                  'field
+                (company-capf command arg)))
+        (doc-buffer (company-capf command arg))))
+    )
 #+end_src
 
 * Citation management
@@ -1265,29 +1262,27 @@ This is set up last as I could not find a way to auto-install svg-tag-mode, if i
     :defer t
     :init
     (add-hook 'ess-mode-hook
-	      (lambda()
-		(make-local-variable 'company-backends)
-		(setq company-backends '(company-files company-capf-with-R-objects))))
-    (add-hook 'ess-mode-hook 'my-ess-mode-hook)
-    (add-hook 'ess-mode-hook 'eglot-mode)
-    (add-hook 'ess-r-mode-hook 'eglot-mode)
+              (lambda()
+                (eglot-ensure)
+                (make-local-variable 'company-backends)
+                (setq company-backends '(company-files company-capf-with-R-objects))))
     ;;(setq ess-use-flymake nil)
     (setq ess-use-company 'scriptonly)
     :config
     (setq ess-history-directory "~/.cache")
     (setq ess-R-font-lock-keywords
-	  '((ess-R-fl-keyword:keywords . t)
-	    (ess-R-fl-keyword:constants . t)
-	    (ess-R-fl-keyword:modifiers . t)
-	    (ess-R-fl-keyword:fun-defs . t)
-	    (ess-R-fl-keyword:assign-ops . t)
-	    (ess-R-fl-keyword:%op% . t)
-	    (ess-fl-keyword:fun-calls . t)
-	    (ess-fl-keyword:numbers . t)
-	    (ess-fl-keyword:operators)
-	    (ess-fl-keyword:delimiters)
-	    (ess-fl-keyword:=)
-	    (ess-R-fl-keyword:F&T . t)))
+          '((ess-R-fl-keyword:keywords . t)
+            (ess-R-fl-keyword:constants . t)
+            (ess-R-fl-keyword:modifiers . t)
+            (ess-R-fl-keyword:fun-defs . t)
+            (ess-R-fl-keyword:assign-ops . t)
+            (ess-R-fl-keyword:%op% . t)
+            (ess-fl-keyword:fun-calls . t)
+            (ess-fl-keyword:numbers . t)
+            (ess-fl-keyword:operators)
+            (ess-fl-keyword:delimiters)
+            (ess-fl-keyword:=)
+            (ess-R-fl-keyword:F&T . t)))
     (setq ess-help-own-frame 'one)  ; avoid destroying existing frame
     (setq ess-help-reuse-window t)  ; same above
     (setq comint-scroll-to-bottom-on-input t)
@@ -1302,48 +1297,56 @@ This is set up last as I could not find a way to auto-install svg-tag-mode, if i
     (setq ess-eval-visibly-p 'nowait)
 
     (setq display-buffer-alist
-	  '(("^\\*R[:\\*]" . (display-buffer-in-side-window
-			      (side . bottom)
-			      (slot . -1)
-			      ))
-	    ("^\\*R dired\\*" . (display-buffer-in-side-window
-				 (side . right)
-				 (slot . -1)
-				 (window-width . 0.25)))
-	    ("^\\*help\\[R\\]" . (display-buffer-in-side-window
-				  (side . right)
-				  (slot . 1)
-				  (window-width . 0.33)))))
+          '(("^\\*R[:\\*]" . (display-buffer-in-side-window
+                              (side . bottom)
+                              (slot . -1)
+                              ))
+            ("^\\*R dired\\*" . (display-buffer-in-side-window
+                                 (side . right)
+                                 (slot . -1)
+                                 (window-width . 0.25)))
+            ("^\\*help\\[R\\]" . (display-buffer-in-side-window
+                                  (side . right)
+                                  (slot . 1)
+                                  (window-width . 0.33)))))
 
     (define-key comint-mode-map (kbd "<up>") 'comint-previous-matching-input-from-input)
     (define-key comint-mode-map (kbd "<down>") 'comint-next-matching-input-from-input)
 
     )
 
-  (defun mb/org-babel-zoom-in ()
-    "Edit src block with lsp support by tangling the block and
-  then setting the org-edit-special buffer-file-name to the
-  absolute path. Finally load eglot."
-    (interactive)
+(defun mb/org-babel-zoom-in ()
+  "Edit src block with lsp support by tangling the block and
+then setting the org-edit-special buffer-file-name to the
+absolute path. Finally load eglot."
+  (interactive)
+  
+  ;; org-babel-get-src-block-info returns lang, code_src, and header
+  ;; params; Use nth 2 to get the params and then retrieve the :tangle
+  ;; to get the filename
+  (let* ((src-block-info (org-babel-get-src-block-info))
+         (lang (nth 0 src-block-info))
+         (params (nth 2 src-block-info))
+         (tangled-file-name (expand-file-name (assoc-default :tangle params))))
+    
+    ;; Check if the language is R
+    (when (string-equal lang "R")
+      ;; Tangle the src block at point
+      (org-babel-tangle '(4))
 
-    ;; org-babel-get-src-block-info returns lang, code_src, and header
-    ;; params; Use nth 2 to get the params and then retrieve the :tangle
-    ;; to get the filename
-    (setq mb/tangled-file-name (expand-file-name (assoc-default :tangle (nth 2 (org-babel-get-src-block-info)))))
+      ;; Switch to session with code
+      (org-babel-switch-to-session-with-code)
 
-    ;; tangle the src block at point
-    (org-babel-tangle '(4))
-    ;;(org-edit-special)
-    (org-babel-switch-to-session-with-code)
+      ;; Set the buffer-file-name to the tangled file
+      (setq-local buffer-file-name tangled-file-name)
+      
+      ;; Ensure eglot is running
+      (eglot-ensure)
 
-    ;; Now we should be in the special edit buffer with python-mode. Set
-    ;; the buffer-file-name to the tangled file so that pylsp and
-    ;; plugins can see an actual file.
-    (setq-local buffer-file-name mb/tangled-file-name)
-    (ess-switch-to-inferior-or-script-buffer t) ; Switch to ESS process buffer
-    (ess-rdired)
-    (eglot-ensure)
-    )
+      ;; Switch to ESS process buffer
+      (ess-switch-to-inferior-or-script-buffer t)
+      (ess-rdired)
+      )))
 
 #+end_src
 
