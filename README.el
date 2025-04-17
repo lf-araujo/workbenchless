@@ -1,392 +1,694 @@
-;;; Guardrail
-
-(when (< emacs-major-version 29)
-  (error (format "Emacs Bedrock only works with Emacs 29 and newer; you have version ~a" emacs-major-version)))
-
-;; This initializes the packages for when one is reading the org file directly
-(package-initialize)
-
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;;;
-;;;   Basic settings
-;;;
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-
-;; Package initialization
-;;
-;; We'll stick to the built-in GNU and non-GNU ELPAs (Emacs Lisp Package
-;; Archive) for the base install, but there are some other ELPAs you could look
-;; at if you want more packages. MELPA in particular is very popular. See
-;; instructions at:
-;;
-;;    https://melpa.org/#/getting-started
-;;
-;; You can simply uncomment the following if you'd like to get started with
-;; MELPA packages quickly:
-;;
-(with-eval-after-load 'package
-  (add-to-list 'package-archives '("melpa" . "https://melpa.org/packages/") t))
-
-;; If you want to turn off the welcome screen, uncomment this
-(setopt inhibit-splash-screen t)
-
-;; Disable menu bar 
-(menu-bar-mode -1)
-
-(setopt initial-major-mode 'fundamental-mode)  ; default mode for the *scratch* buffer
-(setopt display-time-default-load-average nil) ; this information is useless for most
-
-;; Automatically reread from disk if the underlying file changes
-(setopt auto-revert-avoid-polling t)
-;; Some systems don't do file notifications well; see
-;; https://todo.sr.ht/~ashton314/emacs-bedrock/11
-(setopt auto-revert-interval 5)
-(setopt auto-revert-check-vc-info t)
-(global-auto-revert-mode)
-
-;; Save history of minibuffer
-(savehist-mode)
-
-;; Move through windows with Ctrl-<arrow keys>
-(windmove-default-keybindings 'control) ; You can use other modifiers here
-
-;; Fix archaic defaults
-(setopt sentence-end-double-space nil)
-
-;; Make right-click do something sensible
-(when (display-graphic-p)
-  (context-menu-mode))
-
-					; Disable the bell
-(setq ring-bell-function 'ignore)
-
-(set-face-attribute 'default nil :height 150)  ; set font size
-
-(setq undo-outer-limit 72000000)
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;;;
-;;;   Discovery aids
-;;;
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-
-;; Show the help buffer after startup
-;;(add-hook 'after-init-hook 'help-quick)
-;;(setq inhibit-startup-screen t
-;;	initial-buffer-choice  nil)
-
-;; which-key: shows a popup of available keybindings when typing a long key
-;; sequence (e.g. C-x ...)
-(use-package which-key
-  :ensure t
-  :config
-  (which-key-mode))
-
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;;;
-;;;   Minibuffer/completion settings
-;;;
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-
-;; For help, see: https://www.masteringemacs.org/article/understanding-minibuffer-completion
-
-(setopt enable-recursive-minibuffers t)                ; Use the minibuffer whilst in the minibuffer
-(setopt completion-cycle-threshold 1)                  ; TAB cycles candidates
-(setopt completions-detailed t)                        ; Show annotations
-(setopt tab-always-indent 'complete)                   ; When I hit TAB, try to complete, otherwise, indent
-(setopt completion-styles '(basic initials substring)) ; Different styles to match input to candidates
-
-(setopt completion-auto-help 'always)                  ; Open completion always; `lazy' another option
-(setopt completions-max-height 20)                     ; This is arbitrary
-(setopt completions-detailed t)
-(setopt completions-format 'one-column)
-(setopt completions-group t)
-(setopt completion-auto-select 'second-tab)            ; Much more eager
-					;(setopt completion-auto-select t)                     ; See `C-h v completion-auto-select' for more possible values
-
-(keymap-set minibuffer-mode-map "TAB" 'minibuffer-complete) ; TAB acts more like how it does in the shell
-
-;; some global key bindings
-(global-set-key (kbd "C-S-p") 'execute-extended-command)
-(global-set-key (kbd "C-f") 'isearch-forward)
-(global-set-key (kbd "C-S-f") 'isearch-backward)
-(global-set-key (kbd "C-s") 'save-buffer)
-(global-set-key (kbd "C-s") 'save-buffer)
-(define-key minibuffer-local-map (kbd "C-S-p") 'keyboard-escape-quit)
-
-;; For a fancier built-in completion option, try ido-mode,
-;; icomplete-vertical, or fido-mode. See also the file extras/base.el
-
-;;(icomplete-vertical-mode)
-;;(fido-vertical-mode)
-;;(setopt icomplete-delay-completions-threshold 4000)
-
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;;;
-;;;   Interface enhancements/defaults
-;;;
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-
-;; Mode line information
-(setopt line-number-mode t)                        ; Show current line in modeline
-(setopt column-number-mode t)                      ; Show column as well
-
-(setopt x-underline-at-descent-line nil)           ; Prettier underlines
-(setopt switch-to-buffer-obey-display-actions t)   ; Make switching buffers more consistent
-
-(setopt show-trailing-whitespace nil)      ; By default, don't underline trailing spaces
-(setopt indicate-buffer-boundaries 'left)  ; Show buffer top and bottom in the margin
-
-;; Enable horizontal scrolling
-(setopt mouse-wheel-tilt-scroll t)
-(setopt mouse-wheel-flip-direction t)
-
-;; We won't set these, but they're good to know about
-;;
-;; (setopt indent-tabs-mode nil)
-;; (setopt tab-width 4)
-
-;; Misc. UI tweaks
-(blink-cursor-mode -1)                                ; Steady cursor
-(pixel-scroll-precision-mode)                         ; Smooth scrolling
-
-;; Use common keystrokes by default
-(cua-mode)
-
-;; Display line numbers in programming mode
-(add-hook 'prog-mode-hook 'display-line-numbers-mode)
-(setopt display-line-numbers-width 3)           ; Set a minimum width
-
-;; Nice line wrapping when working with text
-(add-hook 'text-mode-hook 'visual-line-mode)
-
-;; Modes to highlight the current line with
-(let ((hl-line-hooks '(text-mode-hook prog-mode-hook)))
-  (mapc (lambda (hook) (add-hook hook 'hl-line-mode)) hl-line-hooks))
-
-;; remove scroll-bar
-;;(scroll-bar-mode -1)
-
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;;;
-;;;   Tab-bar configuration
-;;;
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-
-;; Show the tab-bar as soon as tab-bar functions are invoked
-(setopt tab-bar-show 1)
-
-;; Add the time to the tab-bar, if visible
-(add-to-list 'tab-bar-format 'tab-bar-format-align-right 'append)
-(add-to-list 'tab-bar-format 'tab-bar-format-global 'append)
-(setopt display-time-format "%a %F %T")
-(setopt display-time-interval 1)
-(display-time-mode)
-
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;;;
-;;;   Theme
-;;;
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-
-(use-package emacs
-  :config
-  (load-theme 'modus-operandi))          ; for light theme, use modus-operandi
-
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;;;
-;;;   Built-in customization framework
-;;;
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-
-(custom-set-variables
- ;; custom-set-variables was added by Custom.
- ;; If you edit it by hand, you could mess it up, so be careful.
- ;; Your init file should contain only one such instance.
- ;; If there is more than one, they won't work right.
- '(custom-enabled-themes '(modus-operandi))
- '(package-selected-packages '(org-roam citar ess evil which-key)))
-(custom-set-faces
- ;; custom-set-faces was added by Custom.
- ;; If you edit it by hand, you could mess it up, so be careful.
- ;; Your init file should contain only one such instance.
- ;; If there is more than one, they won't work right.
- )
+;; -*- lexical-binding: t -*-
+  ;;; Guardrail
+  (when (< emacs-major-version 29)
+    (error (format "Emacs Bedrock only works with Emacs 29 and newer; you have version ~a" emacs-major-version)))
 
 
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;;;
-;;;   Motion aids
-;;;
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+  ;; This initializes the packages for when one is reading the org file directly
+  (package-initialize)
 
-(use-package avy
-  :ensure t
-  :demand t
-  :bind (("C-c j" . avy-goto-line)
-	 ("S-j"   . avy-goto-char-timer)))
+  ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+  ;;;
+  ;;;   Basic settings
+  ;;;
+  ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;;;
-;;;   Power-ups: Embark and Consult
-;;;
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+  ;; Package initialization
+  ;;
+  ;; We'll stick to the built-in GNU and non-GNU ELPAs (Emacs Lisp Package
+  ;; Archive) for the base install, but there are some other ELPAs you could look
+  ;; at if you want more packages. MELPA in particular is very popular. See
+  ;; instructions at:
+  ;;
+  ;;    https://melpa.org/#/getting-started
+  ;;
+  ;; You can simply uncomment the following if you'd like to get started with
+  ;; MELPA packages quickly:
+  ;;
+  (with-eval-after-load 'package
+    (add-to-list 'package-archives '("melpa" . "https://melpa.org/packages/") t))
 
-;; Consult: Misc. enhanced commands
-(use-package consult
-  :ensure t
-  :bind (
-	 ;; Drop-in replacements
-	 ("C-x b" . consult-buffer)     ; orig. switch-to-buffer
-	 ("M-y"   . consult-yank-pop)   ; orig. yank-pop
-	 ;; Searching
-	 ("M-s r" . consult-ripgrep)
-	 ("M-s l" . consult-line)       ; Alternative: rebind C-s to use
-	 ("M-s s" . consult-line)       ; consult-line instead of isearch, bind
-	 ("M-s L" . consult-line-multi) ; isearch to M-s s
-	 ("M-s o" . consult-outline)
-	 ;; Isearch integration
-	 :map isearch-mode-map
-	 ("M-e" . consult-isearch-history)   ; orig. isearch-edit-string
-	 ("M-s e" . consult-isearch-history) ; orig. isearch-edit-string
-	 ("M-s l" . consult-line)            ; needed by consult-line to detect isearch
-	 ("M-s L" . consult-line-multi)      ; needed by consult-line to detect isearch
-	 )
-  :config
-  ;; Narrowing lets you restrict results to certain groups of candidates
-  (setq consult-narrow-key "<"))
+  ;; If you want to turn off the welcome screen, uncomment this
+  (setopt inhibit-splash-screen t)
 
-(use-package embark-consult
-  :ensure t
-  :after embark
-  :after consult
+  ;; Welcome message (optional)
+  ;;(let ((inhibit-message t))
+  ;;  (erase-buffer)  ;; Clear the buffer before adding the welcome message
+  ;;  (insert (format "\nThis is Workbenchless.\n\nPress <Control-Shift-P> or <Space> to start.\n\nInitialization time: %s\n"
+  ;;                  (emacs-init-time))))
+
+  ;; Enable CUA mode
+  (cua-mode)
+
+  ;; Disable menu bar 
+  (menu-bar-mode -1)
+
+  ;;(setopt initial-major-mode 'fundamental-mode)  ; default mode for the *scratch* buffer
+  (setopt display-time-default-load-average nil) ; this information is useless for most
+
+  ;; Automatically reread from disk if the underlying file changes
+  (setopt auto-revert-avoid-polling t)
+  ;; Some systems don't do file notifications well; see
+  ;; https://todo.sr.ht/~ashton314/emacs-bedrock/11
+  (setopt auto-revert-interval 5)
+  (setopt auto-revert-check-vc-info t)
+  (global-auto-revert-mode)
+
+  ;; Save history of minibuffer
+  (setq savehist-file "~/.emacs.d/savehist"
+        history-length 1000
+        history-delete-duplicates t
+        savehist-save-minibuffer-history t
+        savehist-additional-variables '(kill-ring search-ring regexp-search-ring))
+  (savehist-mode)
+
+  ;; Move through windows with Ctrl-<arrow keys>
+  (windmove-default-keybindings 'control) ; You can use other modifiers here
+
+  ;; Fix archaic defaults
+  (setopt sentence-end-double-space nil)
+
+  ;; Make right-click do something sensible
+  (when (display-graphic-p)
+    (context-menu-mode))
+
+  ; Disable the bell
+  (setq ring-bell-function 'ignore)
+
+  (set-face-attribute 'default nil :height 150)  ; set font size
+
+  (setq undo-outer-limit 72000000)
+
+  ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+  ;;;
+  ;;;   Discovery aids
+  ;;;
+  ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+  ;; Show the help buffer after startup
+  ;;(add-hook 'after-init-hook 'help-quick)
+  ;;(setq inhibit-startup-screen t
+  ;;	initial-buffer-choice  nil)
+
+  ;; which-key: shows a popup of available keybindings when typing a long key
+  ;; sequence (e.g. C-x ...)
+  (use-package which-key
+    :ensure t
+    :config
+    (which-key-mode))
+
+
+  ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+  ;;;
+  ;;;   Minibuffer/completion settings
+  ;;;
+  ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+  ;; For help, see: https://www.masteringemacs.org/article/understanding-minibuffer-completion
+
+  (setopt enable-recursive-minibuffers t)                ; Use the minibuffer whilst in the minibuffer
+  (setopt completion-cycle-threshold 1)                  ; TAB cycles candidates
+  (setopt completions-detailed t)                        ; Show annotations
+  (setopt tab-always-indent 'complete)                   ; When I hit TAB, try to complete, otherwise, indent
+  (setopt completion-styles '(basic initials substring)) ; Different styles to match input to candidates
+
+  (setopt completion-auto-help 'always)                  ; Open completion always; `lazy' another option
+  (setopt completions-max-height 20)                     ; This is arbitrary
+  (setopt completions-detailed t)
+  (setopt completions-format 'one-column)
+  ;;(setopt completions-group t)
+  (setopt completion-auto-select 'second-tab)            ; Much more eager
+  (setopt completion-auto-select t)                     ; See `C-h v completion-auto-select' for more possible values
+
+  ;; (keymap-set minibuffer-mode-map "TAB" 'minibuffer-complete) ; TAB acts more like how it does in the shell
+
+  ;; some global key bindings
+  (global-set-key (kbd "C-S-p") 'execute-extended-command)
+  (global-set-key (kbd "C-f") 'isearch-forward)
+  (global-set-key (kbd "C-S-f") 'isearch-backward)
+  (global-set-key (kbd "C-s") 'save-buffer)
+  (global-set-key (kbd "C-s") 'save-buffer)
+  ;(define-key minibuffer-local-map (kbd "C-S-p") 'keyboard-escape-quit)
+
+  ;; For a fancier built-in completion option, try ido-mode,
+  ;; icomplete-vertical, or fido-mode. See also the file extras/base.el
+
+  ;(icomplete-vertical-mode)
+  ;(fido-vertical-mode)
+  ;(setopt icomplete-delay-completions-threshold 4000)
+
+  ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+  ;;;
+  ;;;   Interface enhancements/defaults
+  ;;;
+  ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+  ;; Mode line information
+  (setopt line-number-mode t)                        ; Show current line in modeline
+  (setopt column-number-mode t)                      ; Show column as well
+
+  (setopt x-underline-at-descent-line nil)           ; Prettier underlines
+  (setopt switch-to-buffer-obey-display-actions t)   ; Make switching buffers more consistent
+
+  (setopt show-trailing-whitespace nil)      ; By default, don't underline trailing spaces
+  (setopt indicate-buffer-boundaries 'left)  ; Show buffer top and bottom in the margin
+
+  ;; Enable horizontal scrolling
+  (setopt mouse-wheel-tilt-scroll t)
+  (setopt mouse-wheel-flip-direction t)
+
+  ;; We won't set these, but they're good to know about
+  ;;
+  ;; (setopt indent-tabs-mode nil)
+  ;; (setopt tab-width 4)
+
+  ;; Misc. UI tweaks
+  ;;(blink-cursor-mode -1)                                ; Steady cursor
+  ;;(pixel-scroll-precision-mode)                         ; Smooth scrolling
+
+  ;; Use common keystrokes by default
+  (cua-mode)
+
+  ;; Display line numbers in programming mode
+  (add-hook 'prog-mode-hook 'display-line-numbers-mode)
+  (setopt display-line-numbers-width 3)           ; Set a minimum width
+
+  ;; Nice line wrapping when working with text
+  (add-hook 'text-mode-hook 'visual-line-mode)
+
+  ;; Modes to highlight the current line with
+  (let ((hl-line-hooks '(text-mode-hook prog-mode-hook)))
+    (mapc (lambda (hook) (add-hook hook 'hl-line-mode)) hl-line-hooks))
+
+  ;; remove scroll-bar
+  ;;(scroll-bar-mode -1)
+
+  ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+  ;;;
+  ;;;   Tab-bar configuration
+  ;;;
+  ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+  ;; Show the tab-bar as soon as tab-bar functions are invoked
+  ;;(setopt tab-bar-show 1)
+
+  ;; Add the time to the tab-bar, if visible
+  ;; (add-to-list 'tab-bar-format 'tab-bar-format-align-right 'append)
+  ;; (add-to-list 'tab-bar-format 'tab-bar-format-global 'append)
+  ;; (setopt display-time-format "%a %F %T")
+  ;; (setopt display-time-interval 1)
+  ;; (display-time-mode)
+
+  ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+  ;;;
+  ;;;   Theme
+  ;;;
+  ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+  (use-package emacs
+   ;; :config
+   ;; (load-theme 'modus-operandi)
+    )          ; for light theme, use modus-operandi
+
+  ;; Copyright (c) 2025  Nicolas P. Rougier
+  ;; Released under the GNU General Public License 3.0
+  ;; Author: Nicolas P. Rougier <nicolas.rougier@inria.fr>
+  ;; URL: https://github.com/rougier/nano-emacs
+
+  ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+  ;;;
+  ;;;  N A N O 
+  ;;;
+  ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+  ;; --- Speed benchmarking -----------------------------------------------------
+  ;;(setq init-start-time (current-time))
+
+  ;; --- Typography stack -------------------------------------------------------
+  (set-face-attribute 'default nil
+                      :height 140 :weight 'light :family "Roboto Mono")
+  (set-face-attribute 'bold nil :weight 'regular)
+  (set-face-attribute 'bold-italic nil :weight 'regular)
+  (set-display-table-slot standard-display-table 'truncation (make-glyph-code ?…))
+  (set-display-table-slot standard-display-table 'wrap (make-glyph-code ?–))
+
+  ;; --- Frame / windows layout & behavior --------------------------------------
+  (setq default-frame-alist
+        '((height . 44) (width  . 81) (left-fringe . 0) (right-fringe . 0)
+          (internal-border-width . 32) (vertical-scroll-bars . nil)
+          (bottom-divider-width . 0) (right-divider-width . 0)
+          (undecorated-round . t)))
+  (modify-frame-parameters nil default-frame-alist)
+  ;;(setq-default pop-up-windows nil)
+
+  ;; --- Activate / Deactivate modes --------------------------------------------
+  (tool-bar-mode -1) (menu-bar-mode -1) (blink-cursor-mode -1)
+  (global-hl-line-mode 1) (icomplete-vertical-mode 1)
+  (pixel-scroll-precision-mode 1)
+
+  ;; --- Minimal NANO (not a real) theme ----------------------------------------
+  (defface nano-default '((t)) "")   (defface nano-default-i '((t)) "")
+  (defface nano-highlight '((t)) "") (defface nano-highlight-i '((t)) "")
+  (defface nano-subtle '((t)) "")    (defface nano-subtle-i '((t)) "")
+  (defface nano-faded '((t)) "")     (defface nano-faded-i '((t)) "")
+  (defface nano-salient '((t)) "")   (defface nano-salient-i '((t)) "")
+  (defface nano-popout '((t)) "")    (defface nano-popout-i '((t)) "")
+  (defface nano-strong '((t)) "")    (defface nano-strong-i '((t)) "")
+  (defface nano-critical '((t)) "")  (defface nano-critical-i '((t)) "")
+
+  (defun nano-set-face (name &optional foreground background weight)
+    "Set NAME and NAME-i faces with given FOREGROUND, BACKGROUND and WEIGHT"
+
+    (apply #'set-face-attribute `(,name nil
+                                  ,@(when foreground `(:foreground ,foreground))
+                                  ,@(when background `(:background ,background))
+                                  ,@(when weight `(:weight ,weight))))
+    (apply #'set-face-attribute `(,(intern (concat (symbol-name name) "-i")) nil
+                                  :foreground ,(face-background 'nano-default)
+                                  ,@(when foreground `(:background ,foreground))
+                                  :weight regular)))
+
+  (defun nano-link-face (sources faces &optional attributes)
+    "Make FACES to inherit from SOURCES faces and unspecify ATTRIBUTES."
+
+    (let ((attributes (or attributes
+                          '( :foreground :background :family :weight
+                             :height :slant :overline :underline :box))))
+      (dolist (face (seq-filter #'facep faces))
+        (dolist (attribute attributes)
+          (set-face-attribute face nil attribute 'unspecified))
+        (set-face-attribute face nil :inherit sources))))
+
+  (defun nano-install-theme ()
+    "Install THEME"
+
+    (set-face-attribute 'default nil
+                        :foreground (face-foreground 'nano-default)
+                        :background (face-background 'nano-default))
+    (dolist (item '((nano-default .  (variable-pitch variable-pitch-text
+                                      fixed-pitch fixed-pitch-serif))
+                    (nano-highlight . (hl-line highlight))
+                    (nano-subtle .    (match region
+                                       lazy-highlight widget-field))
+                    (nano-faded .     (shadow
+                                       font-lock-comment-face
+                                       font-lock-doc-face
+                                       icomplete-section
+                                       completions-annotations))
+                    (nano-popout .    (warning
+                                       font-lock-string-face))
+                    (nano-salient .   (success link
+                                       help-argument-name
+                                       custom-visibility
+                                       font-lock-type-face
+                                       font-lock-keyword-face
+                                       font-lock-builtin-face
+                                       completions-common-part))
+                    (nano-strong .    (font-lock-function-name-face
+                                       font-lock-variable-name-face
+                                       icomplete-first-match
+                                       minibuffer-prompt))
+                    (nano-critical .  (error
+                                       completions-first-difference))
+                    (nano-faded-i .   (help-key-binding))
+                    (nano-default-i . (custom-button-mouse
+                                       isearch))
+                    (nano-critical-i . (isearch-fail))
+                    ((nano-subtle nano-strong) . (custom-button
+                                                  icomplete-selected-match))
+                    ((nano-faded-i nano-strong) . (show-paren-match))))
+      (nano-link-face (car item) (cdr item)))
+
+    ;; Mode & header lines 
+    (set-face-attribute 'header-line nil
+                        :background 'unspecified
+                        :underline nil
+                        :box `( :line-width 1
+                                :color ,(face-background 'nano-default))
+                        :inherit 'nano-subtle)
+    (set-face-attribute 'mode-line nil
+                        :background (face-background 'default)
+                        :underline (face-foreground 'nano-faded)
+                        :height 40 :overline nil :box nil)
+    (set-face-attribute 'mode-line-inactive nil
+                        :background (face-background 'default)
+                        :underline (face-foreground 'nano-faded)
+                        :height 40 :overline nil :box nil))
+
+  (defun nano-light (&rest args)
+    "NANO light theme (based on material colors)"
+
+    (interactive)
+    (nano-set-face 'nano-default "#37474F" "#FFFFFF") ;; Blue Grey / L800
+    (nano-set-face 'nano-strong "#000000" nil 'regular) ;; Black
+    (nano-set-face 'nano-highlight nil "#FAFAFA") ;; Very Light Grey
+    (nano-set-face 'nano-subtle nil "#ECEFF1") ;; Blue Grey / L50
+    (nano-set-face 'nano-faded "#90A4AE") ;; Blue Grey / L300
+    (nano-set-face 'nano-salient "#673AB7") ;; Deep Purple / L500
+    (nano-set-face 'nano-popout "#FFAB91") ;; Deep Orange / L200
+    (nano-set-face 'nano-critical "#FF6F00") ;; Amber / L900
+    (nano-install-theme))
+  
+  (defun nano-dark (&rest args)
+    "NANO dark theme (based on nord colors)"
+
+    (interactive)
+    (nano-set-face 'nano-default "#ECEFF4" "#2E3440") ;; Snow Storm 3 
+    (nano-set-face 'nano-strong "#ECEFF4" nil 'regular) ;; Polar Night 0
+    (nano-set-face 'nano-highlight nil "#3B4252")  ;; Polar Night 1
+    (nano-set-face 'nano-subtle nil "#434C5E") ;; Polar Night 2 
+    (nano-set-face 'nano-faded "#677691") ;; 
+    (nano-set-face 'nano-salient "#81A1C1")  ;; Frost 2
+    (nano-set-face 'nano-popout "#D08770") ;; Aurora 1
+    (nano-set-face 'nano-critical "#EBCB8B") ;; Aurora 2
+    (nano-install-theme))
+
+  ;; --- Command line theme chooser ---------------------------------------------
+  (add-to-list 'command-switch-alist '("-dark"  . nano-dark))
+  (add-to-list 'command-switch-alist '("-light" . nano-light))
+  (if (member "-dark" command-line-args) (nano-dark) (nano-light))
+
+  ;; --- Minibuffer completion --------------------------------------------------
+  (setq tab-always-indent 'complete
+        icomplete-delay-completions-threshold 0
+        icomplete-compute-delay 0
+        icomplete-show-matches-on-no-input t
+        icomplete-hide-common-prefix nil
+        icomplete-prospects-height 9
+        icomplete-separator " . "
+        icomplete-with-completion-tables t
+        icomplete-in-buffer t
+        icomplete-max-delay-chars 0
+        icomplete-scroll t
+        resize-mini-windows 'grow-only
+        icomplete-matches-format nil)
+  (bind-key "TAB" #'icomplete-force-complete icomplete-minibuffer-map)
+  (bind-key "RET" #'icomplete-force-complete-and-exit icomplete-minibuffer-map)
+
+  ;; --- Minimal key bindings ---------------------------------------------------
+  (defun nano-quit ()
+    "Quit minibuffer from anywhere (code from Protesilaos Stavrou)"
+
+    (interactive)
+    (cond ((region-active-p) (keyboard-quit))
+          ((derived-mode-p 'completion-list-mode) (delete-completion-window))
+          ((> (minibuffer-depth) 0) (abort-recursive-edit))
+          (t (keyboard-quit))))
+
+  (defun nano-kill ()
+    "Delete frame or kill emacs if there is only one frame left"
+    (interactive)
+    (condition-case nil
+        (delete-frame)
+      (error (save-buffers-kill-terminal))))
+
+
+  (bind-key "C-x k" #'kill-current-buffer)
+  (bind-key "C-x C-c" #'nano-kill)
+  (bind-key "C-x C-r" #'recentf-open)
+  (bind-key "C-g" #'nano-quit)
+  (bind-key "M-n" #'make-frame)
+  (bind-key "C-z"  nil) ;; No suspend frame
+  (bind-key "C-<wheel-up>" nil) ;; No text resize via mouse scroll
+  (bind-key "C-<wheel-down>" nil) ;; No text resize via mouse scroll
+
+  ;; --- Sane settings ----------------------------------------------------------
+  (set-default-coding-systems 'utf-8)
+  (setq-default indent-tabs-mode nil
+                ring-bell-function 'ignore
+                select-enable-clipboard t)
+
+  ;; --- OSX Specific -----------------------------------------------------------
+  (when (eq system-type 'darwin)
+    (select-frame-set-input-focus (selected-frame))
+    (setq mac-option-modifier nil
+          ns-function-modifier 'super
+          mac-right-command-modifier 'hyper
+          mac-right-option-modifier 'alt
+          mac-command-modifier 'meta))
+
+  ;; --- Header & mode lines ----------------------------------------------------
+  (setq-default mode-line-format "")
+  (setq-default header-line-format
+    '(:eval
+      (let ((prefix (cond (buffer-read-only     '("RO" . nano-default-i))
+                          ((buffer-modified-p)  '("**" . nano-critical-i))
+                          (t                    '("RW" . nano-faded-i))))
+            (mode (concat "(" (downcase (cond ((consp mode-name) (car mode-name))
+                                              ((stringp mode-name) mode-name)
+                                              (t "unknow")))
+                          " mode)"))
+            (coords (format-mode-line "%c:%l ")))
+        (list
+         (propertize " " 'face (cdr prefix)  'display '(raise -0.25))
+         (propertize (car prefix) 'face (cdr prefix))
+         (propertize " " 'face (cdr prefix) 'display '(raise +0.25))
+         (propertize (format-mode-line " %b ") 'face 'nano-strong)
+         (propertize mode 'face 'header-line)
+         (propertize " " 'display `(space :align-to (- right ,(length coords))))
+         (propertize coords 'face 'nano-faded)))))
+
+  ;; --- Minibuffer setup -------------------------------------------------------
+  (defun nano-minibuffer--setup ()
+    (set-window-margins nil 3 0)
+    (let ((inhibit-read-only t))
+      (add-text-properties (point-min) (+ (point-min) 1)
+        `(display ((margin left-margin)
+                   ,(format "# %s" (substring (minibuffer-prompt) 0 1))))))
+    (setq truncate-lines t))
+  (add-hook 'minibuffer-setup-hook #'nano-minibuffer--setup)
+
+  ;; --- Speed benchmarking -----------------------------------------------------
+  ;;(let ((init-time (float-time (time-subtract (current-time) init-start-time)))
+  ;;      (total-time (string-to-number (emacs-init-time "%f"))))
+  ;;  (message (concat
+  ;;    (propertize "Startup time: " 'face 'bold)
+  ;;    (format "%.2fs " init-time)
+  ;;    (propertize (format "(+ %.2fs system time)"
+  ;;                        (- total-time init-time)) 'face 'shadow))))
+
+  ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+  ;;;
+  ;;;   Built-in customization framework
+  ;;;
+  ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+  (custom-set-variables
+   ;; custom-set-variables was added by Custom.
+   ;; If you edit it by hand, you could mess it up, so be careful.
+   ;; Your init file should contain only one such instance.
+   ;; If there is more than one, they won't work right.
+   '(custom-enabled-themes '(modus-operandi))
+   '(package-selected-packages
+     '(meow treesit-auto htmlize ultra-scroll tree-sitter-langs tree-sitter-ess-r nim-ts-mode tree-sitter copilot editorconfig quelpa-use-package quelpa nim-mode org-roam citar ess evil which-key))
+   '(package-vc-selected-packages
+     '((ultra-scroll :vc-backend Git :url "https://github.com/jdtsmith/ultra-scroll"))))
+  (custom-set-faces
+   ;; custom-set-faces was added by Custom.
+   ;; If you edit it by hand, you could mess it up, so be careful.
+   ;; Your init file should contain only one such instance.
+   ;; If there is more than one, they won't work right.
+   )
+
+
+  ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+  ;;;
+  ;;;   Motion aids
+  ;;;
+  ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+  (use-package avy
+    :ensure t
+    :defer t
+    :demand t
+    :bind (("C-c j" . avy-goto-line)
+           ("S-j"   . avy-goto-char-timer)))
+
+  ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+  ;;;
+  ;;;   Power-ups: Embark and Consult
+  ;;;
+  ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+  ;; Consult: Misc. enhanced commands
+  (use-package consult
+    :ensure t
+    :defer t
+    :bind (
+           ;; Drop-in replacements
+           ("C-x b" . consult-buffer)     ; orig. switch-to-buffer
+           ("M-y"   . consult-yank-pop)   ; orig. yank-pop
+           ;; Searching
+           ("M-s r" . consult-ripgrep)
+           ("M-s l" . consult-line)       ; Alternative: rebind C-s to use
+           ("M-s s" . consult-line)       ; consult-line instead of isearch, bind
+           ("M-s L" . consult-line-multi) ; isearch to M-s s
+           ("M-s o" . consult-outline)
+           ;; Isearch integration
+           :map isearch-mode-map
+           ("M-e" . consult-isearch-history)   ; orig. isearch-edit-string
+           ("M-s e" . consult-isearch-history) ; orig. isearch-edit-string
+           ("M-s l" . consult-line)            ; needed by consult-line to detect isearch
+           ("M-s L" . consult-line-multi)      ; needed by consult-line to detect isearch
+           )
+    :config
+    ;; Narrowing lets you restrict results to certain groups of candidates
+    (setq consult-narrow-key "<"))
+
+  (use-package embark-consult
+    :ensure t
+    :after embark
+    :after consult
+    :defer t
   )
 
-(use-package embark
-  :ensure t
-  :demand t
-  :after avy
-  :bind (("C-c a" . embark-act))        ; bind this to an easy key to hit
+  (use-package embark
+    :ensure t
+    :demand t
+    :after avy
+    :defer t
+    :bind (("C-c a" . embark-act))        ; bind this to an easy key to hit
+    :init
+    ;; Add the option to run embark when using avy
+    (defun bedrock/avy-action-embark (pt)
+      (unwind-protect
+          (save-excursion
+            (goto-char pt)
+            (embark-act))
+        (select-window
+         (cdr (ring-ref avy-ring 0))))
+      t)
+
+    ;; After invoking avy-goto-char-timer, hit "." to run embark at the next
+    ;; candidate you select
+    (setf (alist-get ?. avy-dispatch-alist) 'bedrock/avy-action-embark))
+
+  (use-package embark-consult
+    :defer t
+    :ensure t)
+
+        ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+        ;;;
+        ;;;   Minibuffer and completion
+        ;;;
+        ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+  ;; Vertico: better vertical completion for minibuffer commands
+  ;; (use-package vertico
+  ;;   :ensure t
+  ;;   :init
+  ;;   ;; You'll want to make sure that e.g. fido-mode isn't enabled
+  ;;   (vertico-mode))
+
+  ;; (use-package vertico-directory
+  ;;   :ensure nil
+  ;;   :after vertico
+  ;;   :bind (:map vertico-map
+  ;;               ("M-DEL" . vertico-directory-delete-word)))
+
+  ;; Marginalia: annotations for minibuffer
+  (use-package marginalia
+    :ensure t
+    :defer t
+    :config
+    (marginalia-mode))
+
+  ;; Popup completion-at-point
+  (use-package corfu
+    :ensure t
+    :defer t
+    :init
+    (global-corfu-mode)
+    :custom
+  ;;  (corfu-auto t)   ;; Enable auto completion, not compatible with some ssh connections
+    (corfu-preview-current nil)    ;; Disable current candidate preview
+    :bind
+    (:map corfu-map
+          ("SPC" . corfu-insert-separator)
+          ("C-n" . corfu-next)
+          ("C-p" . corfu-previous)))
+
+  ;; Part of corfu
+  (use-package corfu-popupinfo
+    :after corfu
+    :ensure nil
+    :hook (corfu-mode . corfu-popupinfo-mode)
+    :custom
+    (corfu-popupinfo-delay '(0.25 . 0.1))
+    (corfu-popupinfo-hide nil)
+    :config
+    (corfu-popupinfo-mode))
+
+  ;; Make corfu popup come up in terminal overlay
+  (use-package corfu-terminal
+    :if (not (display-graphic-p))
+    :ensure t
+    :defer t
+    :config
+    (corfu-terminal-mode))
+
+  ;; (use-package corfu-doc
+  ;;   :hook (corfu-mode-hook . corfu-doc-mode))
+
+  ;; Fancy completion-at-point functions; there's too much in the cape package to
+  ;; configure here; dive in when you're comfortable!
+  (use-package cape
+    :ensure t
+    :defer t
+    :init
+    (add-to-list 'completion-at-point-functions #'cape-dabbrev)
+    (add-to-list 'completion-at-point-functions #'cape-file)
+  :hook
+  (ess-r-mode . mpger/cape-capf-ess)
+  ;;(ess-r-inferior-mode . mpger/cape-capf-ess)
+    )
+
+  ;; Pretty icons for corfu
+  (use-package kind-icon
+    :if (display-graphic-p)
+    :ensure t
+    :after corfu
+    :config
+    (add-to-list 'corfu-margin-formatters #'kind-icon-margin-formatter))
+
+  (use-package eshell
+    :defer t
+    :init
+    (defun bedrock/setup-eshell ()
+      ;; Something funny is going on with how Eshell sets up its keymaps; this is
+      ;; a work-around to make C-r bound in the keymap
+      (keymap-set eshell-mode-map "C-r" 'consult-history))
+    :hook ((eshell-mode . bedrock/setup-eshell)))
+
+  ;; Orderless: powerful completion style
+  (use-package orderless
+    :ensure t
+    :defer t
+    :config
+    (setq completion-styles '(orderless)))
+
+        ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+        ;;;
+        ;;;   Misc. editing enhancements
+        ;;;
+        ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+  ;; Modify search results en masse
+  (use-package wgrep
+    :ensure t
+    :defer t
+    :config
+    (setq wgrep-auto-save-buffer t))
+
+  (which-key-show-top-level)
+
+(use-package ultra-scroll
+  ;:load-path "~/code/emacs/ultra-scroll" ; if you git clone'd instead of package-vc-install
   :init
-  ;; Add the option to run embark when using avy
-  (defun bedrock/avy-action-embark (pt)
-    (unwind-protect
-	(save-excursion
-	  (goto-char pt)
-	  (embark-act))
-      (select-window
-       (cdr (ring-ref avy-ring 0))))
-    t)
-
-  ;; After invoking avy-goto-char-timer, hit "." to run embark at the next
-  ;; candidate you select
-  (setf (alist-get ?. avy-dispatch-alist) 'bedrock/avy-action-embark))
-
-(use-package embark-consult
-  :ensure t)
-
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;;;
-;;;   Minibuffer and completion
-;;;
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-
-;; Vertico: better vertical completion for minibuffer commands
-(use-package vertico
-  :ensure t
-  :init
-  ;; You'll want to make sure that e.g. fido-mode isn't enabled
-  (vertico-mode))
-
-(use-package vertico-directory
-  :ensure nil
-  :after vertico
-  :bind (:map vertico-map
-	      ("M-DEL" . vertico-directory-delete-word)))
-
-;; Marginalia: annotations for minibuffer
-(use-package marginalia
-  :ensure t
+  (setq scroll-conservatively 101 ; important!
+        scroll-margin 0) 
   :config
-  (marginalia-mode))
-
-;; Popup completion-at-point
-(use-package corfu
-  :ensure t
-  :init
-  (global-corfu-mode)
-  :custom
-  (corfu-auto t)                 ;; Enable auto completion
-  (corfu-preview-current nil)    ;; Disable current candidate preview
-  :bind
-  (:map corfu-map
-	("SPC" . corfu-insert-separator)
-	("C-n" . corfu-next)
-	("C-p" . corfu-previous)))
-
-;; Part of corfu
-(use-package corfu-popupinfo
-  :after corfu
-  :ensure nil
-  :hook (corfu-mode . corfu-popupinfo-mode)
-  :custom
-  (corfu-popupinfo-delay '(0.25 . 0.1))
-  (corfu-popupinfo-hide nil)
-  :config
-  (corfu-popupinfo-mode))
-
-;; Make corfu popup come up in terminal overlay
-(use-package corfu-terminal
-  :if (not (display-graphic-p))
-  :ensure t
-  :config
-  (corfu-terminal-mode))
-
-(use-package corfu-doc
-  :hook (corfu-mode-hook . corfu-doc-mode))
-
-;; Fancy completion-at-point functions; there's too much in the cape package to
-;; configure here; dive in when you're comfortable!
-(use-package cape
-  :ensure t
-  :init
-  (add-to-list 'completion-at-point-functions #'cape-dabbrev)
-  (add-to-list 'completion-at-point-functions #'cape-file))
-
-;; Pretty icons for corfu
-(use-package kind-icon
-  :if (display-graphic-p)
-  :ensure t
-  :after corfu
-  :config
-  (add-to-list 'corfu-margin-formatters #'kind-icon-margin-formatter))
-
-(use-package eshell
-  :init
-  (defun bedrock/setup-eshell ()
-    ;; Something funny is going on with how Eshell sets up its keymaps; this is
-    ;; a work-around to make C-r bound in the keymap
-    (keymap-set eshell-mode-map "C-r" 'consult-history))
-  :hook ((eshell-mode . bedrock/setup-eshell)))
-
-;; Orderless: powerful completion style
-(use-package orderless
-  :ensure t
-  :config
-  (setq completion-styles '(orderless)))
-
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;;;
-;;;   Misc. editing enhancements
-;;;
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-
-;; Modify search results en masse
-(use-package wgrep
-  :ensure t
-  :config
-  (setq wgrep-auto-save-buffer t))
-
-(which-key-show-top-level)
+  (ultra-scroll-mode 1))
 
 (use-package tramp
   :ensure t
@@ -396,7 +698,7 @@
 
   (add-to-list 'tramp-methods
 	       ;; this is an internal method for interactive scripting, change to what your server uses
-	       '("qsub"   
+	       '("workq"   
 		 (tramp-login-program        "qsub")
 		 (tramp-login-args           (("-I -l ncpus=23"))) ; options here?
 		 ;; the local $SHELL may contain conflicting configuration
@@ -408,23 +710,24 @@
   )
 
 ;;; This will try to use tree-sitter modes for many languages. Please run
-    ;;;
-    ;;;   M-x treesit-install-language-grammar
-    ;;;
-    ;;; Before trying to use a treesit mode.
+;;;
+;;;   M-x treesit-install-language-grammar
+;;;
+;;; Before trying to use a treesit mode.
 
-    ;;; Contents:
-    ;;;
-    ;;;  - Built-in config for developers
-    ;;;  - Version Control
-    ;;;  - Common file types
-    ;;;  - Eglot, the built-in LSP client for Emacs
+;;; Contents:
+;;;
+;;;  - Built-in config for developers
+;;;  - Version Control
+;;;  - Common file types
+;;;  - Eglot, the built-in LSP client for Emacs
 
-    ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-    ;;;
-    ;;;   Built-in config for developers
-    ;;;
-    ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;
+;;;   Built-in config for developers
+;;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
 
 (setq treesit-language-source-alist
       '((r . ("https://github.com/r-lib/tree-sitter-r" "main" "src"))
@@ -433,57 +736,62 @@
 (use-package emacs
   :config
   ;; Treesitter config
-
   ;; Tell Emacs to prefer the treesitter mode
   ;; You'll want to run the command `M-x treesit-install-language-grammar' before editing.
   (setq major-mode-remap-alist
-        '((yaml-mode . yaml-ts-mode)
-          (bash-mode . bash-ts-mode)
-          (js2-mode . js-ts-mode)
-          (typescript-mode . typescript-ts-mode)
-          (json-mode . json-ts-mode)
-          ;;  (nim-mode . nim-ts-mode)
-          (css-mode . css-ts-mode)
-          (python-mode . python-ts-mode)))
+	'((yaml-mode . yaml-ts-mode)
+	  (bash-mode . bash-ts-mode)
+	  (js2-mode . js-ts-mode)
+	  (typescript-mode . typescript-ts-mode)
+	  (json-mode . json-ts-mode)
+	  (css-mode . css-ts-mode)
+	  (ess-r-mode . r-mode)
+	  (inferior-ess-r-mode . r-mode)
+	  (nim-mode . nim-ts-mode)
+	  (python-mode . python-ts-mode)))
   :hook
   ;; Auto parenthesis matching
   (prog-mode . electric-pair-mode))
 
-    ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-    ;;;
-    ;;;   Version Control
-    ;;;
-    ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;
+;;;   Version Control
+;;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 ;; Magit: best Git client to ever exist
 (use-package magit
+  :defer t
   :ensure t
   :bind (("C-x g" . magit-status)))
 
-    ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-    ;;;
-    ;;;   Common file types
-    ;;;
-    ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;
+;;;   Common file types
+;;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (use-package markdown-mode
+  :defer t
   :hook ((markdown-mode . visual-line-mode)))
 
 (use-package yaml-mode
+  :defer t
   :ensure t)
 
 (use-package json-mode
+  :defer t
   :ensure t)
 
 ;; Emacs ships with a lot of popular programming language modes. If it's not
 ;; built in, you're almost certain to find a mode for the language you're
 ;; looking for with a quick Internet search.
 
-    ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-    ;;;
-    ;;;   Eglot, the built-in LSP client for Emacs
-    ;;;
-    ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;
+;;;   Eglot, the built-in LSP client for Emacs
+;;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 ;; Helpful resources:
 ;;
@@ -496,45 +804,26 @@
   :custom
   (eglot-send-changes-idle-time 0.1)
   (eglot-extend-to-xref t)              ; activate Eglot in referenced non-project files
-
+  :hook
+  (add-hook 'ess-r-mode-inferior-hook 'eglot-mode)
   :config
   (fset #'jsonrpc--log-event #'ignore)  ; massive perf boost---don't log every event
+  (setq eldoc-echo-area-use-multiline-p nil)  ; Disable multiline echo area messages
   ;; Sometimes you need to tell Eglot where to find the language server
-  ;; (add-to-list 'eglot-server-programs
-  ;;              '(haskell-mode . ("haskell-language-server-wrapper" "--lsp")))
-  (setq eglot-stay-out-of '(company))
+  ;;(add-to-list 'eglot-server-programs
+  ;;       '(nim-mode . '("/home/.nimble/nimlangserver" "--autobind")))
+  ;;(setq eglot-auto-config t)
+  ;;(setq eglot-stay-out-of '(company))
 
-  (defun company-R-objects--prefix ()
-    (unless (ess-inside-string-or-comment-p)
-      (let ((start (ess-symbol-start)))
-        (when start
-          (buffer-substring-no-properties start (point))))))
-
-  (defun company-R-objects--candidates (arg)
-    (let ((proc (ess-get-next-available-process)))
-      (when proc
-        (with-current-buffer (process-buffer proc)
-          (all-completions arg (ess--get-cached-completions arg))))))
-
-  (defun company-capf-with-R-objects--check-prefix (prefix)
-    (cl-search "$" prefix))
-
-  (defun company-capf-with-R-objects (command &optional arg &rest ignored)
-    (interactive (list 'interactive))
-    (cl-case command
-      (interactive (company-begin-backend 'company-R-objects))
-      (prefix (company-R-objects--prefix))
-      (candidates (if (company-capf-with-R-objects--check-prefix arg)
-                      (company-R-objects--candidates arg)
-                    (company-capf command arg)))
-      (annotation (if (company-capf-with-R-objects--check-prefix arg)
-                      "R-object"
-                    (company-capf command arg)))
-      (kind (if (company-capf-with-R-objects--check-prefix arg)
-                'field
-              (company-capf command arg)))
-      (doc-buffer (company-capf command arg))))
+ 
   )
+
+(defun mpger/cape-capf-ess ()
+  (dolist (elmnt
+	   (mapcar #'cape-company-to-capf
+		   (list #'company-R-library #'company-R-args #'company-R-objects)))
+    (add-to-list 'completion-at-point-functions elmnt))
+  (setq-local orderless-matching-styles '(orderless-literal))) ;; default is '(orderless-literal orderless-regexp)
 
 (use-package citar
   :ensure t
@@ -567,6 +856,7 @@
 
 (use-package org
   :ensure t
+  :defer t
   :hook ((org-mode . visual-line-mode)  ; wrap lines at word breaks
 	 (org-mode . flyspell-mode)     ; spell checking!
 	 (org-mode . notebook-mode)
@@ -580,7 +870,7 @@
   (setq org-image-actual-width `( ,(truncate (* (frame-pixel-width) 0.85))))
   (setq org-confirm-babel-evaluate nil)
   ;;(setq org-format-latex-options (plist-put org-format-latex-options :scale 2))
-  (setq org-format-latex-options (plist-put nil :scale 1.0))
+  (setq org-format-latex-options (plist-put nil :scale 2.0))
 
   :custom
   (org-display-remote-inline-images 'download)
@@ -610,7 +900,7 @@
       (org-hide-block-all))
     (setq-local org-blocks-hidden (not org-blocks-hidden)))
 
-  (define-key org-mode-map (kbd "C-c b t") 'org-toggle-blocks)
+  ;;(define-key org-mode-map (kbd "C-c b t") 'org-toggle-blocks)
   ;; (define-key org-mode-map (kbd "C-c b t") 'org-babel-switch-to-session-with-code)
 
   (add-hook 'org-mode-hook 'org-toggle-blocks)
@@ -722,279 +1012,223 @@
   )
 
 (use-package svg-tag-mode
-  :ensure t
-  )
-
-(require 'org)
-(require 'svg-tag-mode)
-
-(defgroup notebook nil
-  "Customization options for `notebook-mode'."
-  :group 'org)
-
-(defcustom notebook-babel-python-command
-  "/opt/anaconda3/bin/python"
-  "Python interpreter's path."
-  :group 'notebook)
-
-(defcustom notebook-cite-csl-styles-dir
-  "."
-  "CSL styles citations' directory."
-  :group 'notebook)
-
-(defcustom notebook-tags
-  '(
-    ;; Inline code
-    ;; --------------------------------------------------------------------
-    ("^#\\+call:" .     ((lambda (tag) (svg-tag-make "CALL"
-						     :face 'org-meta-line))
-			 (lambda () (interactive) (notebook-call-at-point)) "Call function"))
-    ("call_" .         ((lambda (tag) (svg-tag-make "CALL"
-						    :face 'default
-						    :margin 1
-						    :alignment 0))
-			(lambda () (interactive) (notebook-call-at-point)) "Call function"))
-    ("src_" .          ((lambda (tag) (svg-tag-make "CALL"
-						    :face 'default
-						    :margin 1
-						    :alignment 0))
-			(lambda () (interactive) (notebook-call-at-point)) "Execute code"))
-
-    ;; Code blocks
-    ;; --------------------------------------------------------------------
-    ("^#\\+begin_src\\( [a-zA-Z\-]+\\)" .  ((lambda (tag)
-					      (svg-tag-make (upcase tag)
-							    :face 'org-meta-line
-							    :crop-left t))))
-    ("^#\\+begin_src" . ((lambda (tag) (svg-tag-make "RUN"
-						     :face 'org-meta-line
-						     :inverse t
-						     :crop-right t))
-			 (lambda () (interactive) (notebook-run-at-point)) "Run code block"))
-    ("^#\\+end_src" .    ((lambda (tag) (svg-tag-make "END"
-						      :face 'org-meta-line))))
-    (":session" . ((lambda (tag) (svg-tag-make "ZOOM-IN"
-					       :face 'org-meta-line
-					       :inverse t
-					       :crop-right t))
-		   (lambda () (interactive) (mb/org-babel-zoom-in)) "Zoom-in"))
-
-
-
-    ;; Export blocks
-    ;; --------------------------------------------------------------------
-    ("^#\\+begin_export" . ((lambda (tag) (svg-tag-make "EXPORT"
-							:face 'org-meta-line
-							:inverse t
-							:alignment 0
-							:crop-right t))))
-    ("^#\\+begin_export\\( [a-zA-Z\-]+\\)" .  ((lambda (tag)
-						 (svg-tag-make (upcase tag)
-							       :face 'org-meta-line
-							       :crop-left t))))
-    ("^#\\+end_export" . ((lambda (tag) (svg-tag-make "END"
-						      :face 'org-meta-line))))
-
-    ;; :noexport: tag
-    ;; --------------------------------------------------------------------
-    ("\\(:no\\)export:" .    ((lambda (tag) (svg-tag-make "NO"
-							  :face 'org-meta-line
-							  :inverse t
-							  :crop-right t))))
-    (":no\\(export:\\)" .    ((lambda (tag) (svg-tag-make "EXPORT"
-							  :face 'org-meta-line
-							  :crop-left t))))
-
-    ;; Miscellaneous keywords
-    ;; --------------------------------------------------------------------
-    ("|RUN|" .          ((lambda (tag) (svg-tag-make "RUN"
-						     :face 'org-meta-line
-						     :inverse t))))
-    ("|RUN ALL|" .       ((lambda (tag) (svg-tag-make "RUN ALL"
-						      :face 'org-meta-line))
-			  (lambda () (interactive) (notebook-run)) "Run all notebook code blocks"))
-    ("|SETUP|" .         ((lambda (tag) (svg-tag-make "SETUP"
-						      :face 'org-meta-line))
-			  (lambda () (interactive) (notebook-setup)) "Setup notebook environment"))
-    ("|ZOOM-IN-CODE|" .       ((lambda (tag) (svg-tag-make "ZOOM-IN"
-							   :face 'org-meta-line))
-			       (lambda () (interactive) (mb/org-babel-zoom-in)) "Zoom-in"))
-
-    ("|EXPORT|" .        ((lambda (tag) (svg-tag-make "EXPORT"
-						      :face 'org-meta-line))
-			  (lambda () (interactive) (notebook-export-html)) "Export the notebook to HTML"))
-    ("|CALL|" .          ((lambda (tag) (svg-tag-make "CALL"
-						      :face 'org-meta-line))))
-
-
-    ;; References
-    ;; --------------------------------------------------------------------
-    ("\\(\\[cite:@[A-Za-z]+:\\)" .
-     ((lambda (tag) (svg-tag-make (upcase tag)
-					;            :face 'nano-default
-				  :inverse t
-				  :beg 7 :end -1
-				  :crop-right t))))
-    ("\\[cite:@[A-Za-z]+:\\([0-9a-z]+\\]\\)" .
-     ((lambda (tag) (svg-tag-make (upcase tag)
-					;            :face 'nano-default
-				  :end -1
-				  :crop-left t))))
-
-    ;; Miscellaneous properties
-    ;; --------------------------------------------------------------------
-    ("^#\\+caption:" .   ((lambda (tag) (svg-tag-make "CAPTION"
-						      :face 'org-meta-line))))
-    ("^#\\+latex:" .     ((lambda (tag) (svg-tag-make "LATEX"
-						      :face 'org-meta-line))))
-    ("^#\\+html:" .      ((lambda (tag) (svg-tag-make "HTML"
-						      :face 'org-meta-line))))
-    ("^#\\+name:" .      ((lambda (tag) (svg-tag-make "NAME"
-						      :face 'org-meta-line))))
-    ("^#\\+header:" .    ((lambda (tag) (svg-tag-make "HEADER"
-						      :face 'org-meta-line))))
-    ("^#\\+label:" .     ((lambda (tag) (svg-tag-make "LABEL"
-						      :face 'org-meta-line))))
-    ("^#\\+results:"  .  ((lambda (tag) (svg-tag-make "RESULTS"
-						      :face 'org-meta-line)))))
-  "The `notebook-mode' tags alist.
-       This alist is the `notebook-mode' specific tags list.  It follows the
-       same definition pattern as the `svg-tag-tags' alist (to which
-       `notebook-tags' is added)."
-  :group 'notebook)
-
-
-(defcustom notebook-font-lock-case-insensitive t
-  "Make the keywords fontification case insensitive if non-nil."
-  :group 'notebook)
-
-(defcustom notebook-indent t
-  "Default document indentation.
-	 If non-nil, `org-indent' is called when the mode is turned on."
-  :group 'notebook)
-
-(defcustom notebook-hide-blocks t
-  "Default visibility of org blocks in `notebook-mode'.
-	 If non-nil, the org blocks are hidden when the mode is turned on."
-  :group 'notebook)
-
-(defun notebook-run-at-point ()
-  "Update notebook rendering at point."
-  (interactive)
-  (org-ctrl-c-ctrl-c)
-  (org-redisplay-inline-images))
-
-(defalias 'notebook-call-at-point 'org-ctrl-c-ctrl-c)
-
-(defun notebook-setup ()
-  "Notebook mode setup function."
-  (interactive)
-  (setq org-cite-csl-styles-dir notebook-cite-csl-styles-dir)
-  (setq org-babel-python-command notebook-babel-python-command)
-  (require 'ob-python)
-  (require 'oc-csl))
-
-(defalias 'notebook-run 'org-babel-execute-buffer)
-
-(defalias 'notebook-export-html 'org-html-export-to-html)
-
-(defun notebook-mode-on ()
-  "Activate notebook mode."
-
-  (add-to-list 'font-lock-extra-managed-props 'display)
-  (setq font-lock-keywords-case-fold-search notebook-font-lock-case-insensitive)
-  (setq org-image-actual-width `( ,(truncate (* (frame-pixel-width) 0.85))))
-  (setq org-startup-with-inline-images t)
-  (mapc #'(lambda (tag) (add-to-list 'svg-tag-tags tag)) notebook-tags)
-  (org-redisplay-inline-images)
-  (if notebook-indent (org-indent-mode))
-  (if notebook-hide-blocks (org-hide-block-all))
-  (add-hook 'org-babel-after-execute-hook 'org-redisplay-inline-images)
-  (svg-tag-mode 1)
-  (message "notebook mode on"))
-
-(defun notebook-mode-off ()
-  "Deactivate notebook mode."
-
-  (svg-tag-mode -1)
-  (if notebook-indent (org-indent-mode -1))
-  (if notebook-hide-blocks (org-hide-block-all))
-  (remove-hook 'org-babel-after-execute-hook 'org-redisplay-inline-images))
-
-     ;;; autoload
-(define-minor-mode notebook-mode
-  "Minor mode for graphical tag as rounded box."
-  :group 'notebook
-  (if notebook-mode
-      (notebook-mode-on)
-    (notebook-mode-off)))
-
-(define-globalized-minor-mode
-  global-notebook-mode notebook-mode notebook-mode-on)
-
-(use-package notebook
-  :after org-mode
-  :config
-  (svg-tag-mode 1)
-  )
-
-(use-package ess
-    :ensure t 
+      :ensure t
     :defer t
-    :init
-    (add-hook 'ess-mode-hook
-              (lambda()
-                (eglot-ensure)
-                (make-local-variable 'company-backends)
-                (setq company-backends '(company-files company-capf-with-R-objects))))
-    ;;(setq ess-use-flymake nil)
-    (setq ess-use-company 'scriptonly)
-    :config
-    (setq ess-history-directory "~/.cache")
-    (setq ess-R-font-lock-keywords
-          '((ess-R-fl-keyword:keywords . t)
-            (ess-R-fl-keyword:constants . t)
-            (ess-R-fl-keyword:modifiers . t)
-            (ess-R-fl-keyword:fun-defs . t)
-            (ess-R-fl-keyword:assign-ops . t)
-            (ess-R-fl-keyword:%op% . t)
-            (ess-fl-keyword:fun-calls . t)
-            (ess-fl-keyword:numbers . t)
-            (ess-fl-keyword:operators)
-            (ess-fl-keyword:delimiters)
-            (ess-fl-keyword:=)
-            (ess-R-fl-keyword:F&T . t)))
-    (setq ess-help-own-frame 'one)  ; avoid destroying existing frame
-    (setq ess-help-reuse-window t)  ; same above
-    (setq comint-scroll-to-bottom-on-input t)
-    (setq comint-scroll-to-bottom-on-output t)
-    (setq comint-move-point-for-output t)
-    (setq comint-scroll-show-maximum-output t)
+      )
 
-    (setq ess-ask-for-ess-directory nil)
-    (setq ess-startup-directory 'default-directory)
 
-    ;; Trying to speed up ess on orgmode
-    (setq ess-eval-visibly-p 'nowait)
+    (require 'org)
+    (require 'svg-tag-mode)
 
-    (setq display-buffer-alist
-          '(("^\\*R[:\\*]" . (display-buffer-in-side-window
-                              (side . bottom)
-                              (slot . -1)
-                              ))
-            ("^\\*R dired\\*" . (display-buffer-in-side-window
-                                 (side . right)
-                                 (slot . -1)
-                                 (window-width . 0.25)))
-            ("^\\*help\\[R\\]" . (display-buffer-in-side-window
-                                  (side . right)
-                                  (slot . 1)
-                                  (window-width . 0.33)))))
+    (defgroup notebook nil
+      "Customization options for `notebook-mode'."
+      :group 'org)
 
-    (define-key comint-mode-map (kbd "<up>") 'comint-previous-matching-input-from-input)
-    (define-key comint-mode-map (kbd "<down>") 'comint-next-matching-input-from-input)
+    (defcustom notebook-babel-python-command
+      "/opt/anaconda3/bin/python"
+      "Python interpreter's path."
+      :group 'notebook)
 
-    )
+    (defcustom notebook-cite-csl-styles-dir
+      "."
+      "CSL styles citations' directory."
+      :group 'notebook)
+
+  (defcustom notebook-tags
+    '(
+      ;; Inline code
+      ;; --------------------------------------------------------------------
+      ("^#\\+call:" .     ((lambda (tag) (svg-tag-make "CALL"
+                                                       :face 'org-meta-line))
+                           (lambda () (interactive) (notebook-call-at-point)) "Call function"))
+      ("call_" .         ((lambda (tag) (svg-tag-make "CALL"
+                                                      :face 'default
+                                                      :margin 1
+                                                      :alignment 0))
+                          (lambda () (interactive) (notebook-call-at-point)) "Call function"))
+      ("src_" .          ((lambda (tag) (svg-tag-make "CALL"
+                                                      :face 'default
+                                                      :margin 1
+                                                      :alignment 0))
+                          (lambda () (interactive) (notebook-call-at-point)) "Execute code"))
+
+      ;; Code blocks
+      ;; --------------------------------------------------------------------
+      ("^#\\+begin_src\\( [a-zA-Z\-]+\\)" .  ((lambda (tag)
+                                                (svg-tag-make (upcase tag)
+                                                              :face 'org-meta-line
+                                                              :crop-left t))))
+      ("^#\\+begin_src" . ((lambda (tag) (svg-tag-make "RUN"
+                                                       :face 'org-meta-line
+                                                       :inverse t
+                                                       :crop-right t))
+                           (lambda () (interactive) (notebook-run-at-point)) "Run code block"))
+      ("^#\\+end_src" .    ((lambda (tag) (svg-tag-make "END"
+                                                        :face 'org-meta-line))))
+      (":session" . ((lambda (tag) (svg-tag-make "ZOOM-IN"
+                                                 :face 'org-meta-line
+                                                 :inverse t
+                                                 :crop-right t))
+                     (lambda () (interactive) (mb/org-babel-zoom-in)) "Zoom-in"))
+
+
+
+      ;; Export blocks
+      ;; --------------------------------------------------------------------
+      ("^#\\+begin_export" . ((lambda (tag) (svg-tag-make "EXPORT"
+                                                          :face 'org-meta-line
+                                                          :inverse t
+                                                          :alignment 0
+                                                          :crop-right t))))
+      ("^#\\+begin_export\\( [a-zA-Z\-]+\\)" .  ((lambda (tag)
+                                                   (svg-tag-make (upcase tag)
+                                                                 :face 'org-meta-line
+                                                                 :crop-left t))))
+      ("^#\\+end_export" . ((lambda (tag) (svg-tag-make "END"
+                                                        :face 'org-meta-line))))
+
+      ;; :noexport: tag
+      ;; --------------------------------------------------------------------
+      ("\\(:no\\)export:" .    ((lambda (tag) (svg-tag-make "NO"
+                                                            :face 'org-meta-line
+                                                            :inverse t
+                                                            :crop-right t))))
+      (":no\\(export:\\)" .    ((lambda (tag) (svg-tag-make "EXPORT"
+                                                            :face 'org-meta-line
+                                                            :crop-left t))))
+
+      ;; Miscellaneous keywords
+      ;; --------------------------------------------------------------------
+      ("|RUN|" .          ((lambda (tag) (svg-tag-make "RUN"
+                                                       :face 'org-meta-line
+                                                       :inverse t))))
+      ("|RUN ALL|" .       ((lambda (tag) (svg-tag-make "RUN ALL"
+                                                        :face 'org-meta-line))
+                            (lambda () (interactive) (notebook-run)) "Run all notebook code blocks"))
+      ("|SETUP|" .         ((lambda (tag) (svg-tag-make "SETUP"
+                                                        :face 'org-meta-line))
+                            (lambda () (interactive) (notebook-setup)) "Setup notebook environment"))
+      ("|ZOOM-IN-CODE|" .       ((lambda (tag) (svg-tag-make "ZOOM-IN"
+                                                             :face 'org-meta-line))
+                                 (lambda () (interactive) (mb/org-babel-zoom-in)) "Zoom-in"))
+
+      ("|EXPORT|" .        ((lambda (tag) (svg-tag-make "EXPORT"
+                                                        :face 'org-meta-line))
+                            (lambda () (interactive) (notebook-export-html)) "Export the notebook to HTML"))
+      ("|CALL|" .          ((lambda (tag) (svg-tag-make "CALL"
+                                                        :face 'org-meta-line))))
+
+
+      ;; References
+      ;; --------------------------------------------------------------------
+      ("\\(\\[cite:@[A-Za-z]+:\\)" .
+       ((lambda (tag) (svg-tag-make (upcase tag)
+                                          ;            :face 'nano-default
+                                    :inverse t
+                                    :beg 7 :end -1
+                                    :crop-right t))))
+      ("\\[cite:@[A-Za-z]+:\\([0-9a-z]+\\]\\)" .
+       ((lambda (tag) (svg-tag-make (upcase tag)
+                                          ;            :face 'nano-default
+                                    :end -1
+                                    :crop-left t))))
+
+      ;; Miscellaneous properties
+      ;; --------------------------------------------------------------------
+      ("^#\\+caption:" .   ((lambda (tag) (svg-tag-make "CAPTION"
+                                                        :face 'org-meta-line))))
+      ("^#\\+latex:" .     ((lambda (tag) (svg-tag-make "LATEX"
+                                                        :face 'org-meta-line))))
+      ("^#\\+html:" .      ((lambda (tag) (svg-tag-make "HTML"
+                                                        :face 'org-meta-line))))
+      ("^#\\+name:" .      ((lambda (tag) (svg-tag-make "NAME"
+                                                        :face 'org-meta-line))))
+      ("^#\\+header:" .    ((lambda (tag) (svg-tag-make "HEADER"
+                                                        :face 'org-meta-line))))
+      ("^#\\+label:" .     ((lambda (tag) (svg-tag-make "LABEL"
+                                                        :face 'org-meta-line))))
+      ("^#\\+results:"  .  ((lambda (tag) (svg-tag-make "RESULTS"
+                                                        :face 'org-meta-line)))))
+    "The `notebook-mode' tags alist.
+         This alist is the `notebook-mode' specific tags list.  It follows the
+         same definition pattern as the `svg-tag-tags' alist (to which
+         `notebook-tags' is added)."
+    :group 'notebook)
+
+
+    (defcustom notebook-font-lock-case-insensitive t
+      "Make the keywords fontification case insensitive if non-nil."
+      :group 'notebook)
+
+    (defcustom notebook-indent t
+      "Default document indentation.
+           If non-nil, `org-indent' is called when the mode is turned on."
+      :group 'notebook)
+
+    (defcustom notebook-hide-blocks t
+      "Default visibility of org blocks in `notebook-mode'.
+           If non-nil, the org blocks are hidden when the mode is turned on."
+      :group 'notebook)
+
+    (defun notebook-run-at-point ()
+      "Update notebook rendering at point."
+      (interactive)
+      (org-ctrl-c-ctrl-c)
+      (org-redisplay-inline-images))
+
+    (defalias 'notebook-call-at-point 'org-ctrl-c-ctrl-c)
+
+    (defun notebook-setup ()
+      "Notebook mode setup function."
+      (interactive)
+      (setq org-cite-csl-styles-dir notebook-cite-csl-styles-dir)
+      (setq org-babel-python-command notebook-babel-python-command)
+      (require 'ob-python)
+      (require 'oc-csl))
+
+    (defalias 'notebook-run 'org-babel-execute-buffer)
+
+    (defalias 'notebook-export-html 'org-html-export-to-html)
+
+    (defun notebook-mode-on ()
+      "Activate notebook mode."
+
+      (add-to-list 'font-lock-extra-managed-props 'display)
+      (setq font-lock-keywords-case-fold-search notebook-font-lock-case-insensitive)
+      (setq org-image-actual-width `( ,(truncate (* (frame-pixel-width) 0.85))))
+      (setq org-startup-with-inline-images t)
+      (mapc #'(lambda (tag) (add-to-list 'svg-tag-tags tag)) notebook-tags)
+      (org-redisplay-inline-images)
+      (if notebook-indent (org-indent-mode))
+      (if notebook-hide-blocks (org-hide-block-all))
+      (add-hook 'org-babel-after-execute-hook 'org-redisplay-inline-images)
+      (svg-tag-mode 1)
+      (message "notebook mode on"))
+
+    (defun notebook-mode-off ()
+      "Deactivate notebook mode."
+
+      (svg-tag-mode -1)
+      (if notebook-indent (org-indent-mode -1))
+      (if notebook-hide-blocks (org-hide-block-all))
+      (remove-hook 'org-babel-after-execute-hook 'org-redisplay-inline-images))
+
+       ;;; autoload
+    (define-minor-mode notebook-mode
+      "Minor mode for graphical tag as rounded box."
+      :group 'notebook
+      (if notebook-mode
+          (notebook-mode-on)
+        (notebook-mode-off)))
+
+    (define-globalized-minor-mode
+      global-notebook-mode notebook-mode notebook-mode-on)
+
+    (use-package notebook
+      :after org-mode
+      :config
+      (svg-tag-mode 1)
+      )
 
 (defun mb/org-babel-zoom-in ()
   "Edit src block with lsp support by tangling the block and
@@ -1028,3 +1262,66 @@ absolute path. Finally load eglot."
       (ess-switch-to-inferior-or-script-buffer t)
       (ess-rdired)
       )))
+
+(use-package ess
+  :ensure t 
+  :defer t
+  :init
+  (add-hook 'ess-mode-hook
+	    (lambda()
+	      (eglot-ensure)
+	      (make-local-variable 'company-backends)
+	      ;;(setq company-backends '(company-files company-capf-with-R-objects))
+              )
+              )
+  ;;(add-hook 'ess-mode-hook 'my-ess-mode-hook)
+  ;;(add-hook 'ess-mode-hook 'eglot-mode)
+  ;;(add-hook 'ess-r-mode-hook 'eglot-mode)
+  :config
+  (setq ess-use-flymake nil)
+  (setq ess-use-company 'scriptonly)
+  (setq ess-indent-with-fancy-comments nil)
+  (setq ess-history-directory "~/.cache")
+  (setq ess-R-font-lock-keywords
+	'((ess-R-fl-keyword:keywords . t)
+	  (ess-R-fl-keyword:constants . t)
+	  (ess-R-fl-keyword:modifiers . t)
+	  (ess-R-fl-keyword:fun-defs . t)
+	  (ess-R-fl-keyword:assign-ops . t)
+	  (ess-R-fl-keyword:%op% . t)
+	  (ess-fl-keyword:fun-calls . t)
+	  (ess-fl-keyword:numbers . t)
+	  (ess-fl-keyword:operators)
+	  (ess-fl-keyword:delimiters)
+	  (ess-fl-keyword:=)
+	  (ess-R-fl-keyword:F&T . t)))
+  (setq ess-help-own-frame 'one)  ; avoid destroying existing frame
+  (setq ess-help-reuse-window t)  ; same above
+  (setq comint-scroll-to-bottom-on-input t)
+  (setq comint-scroll-to-bottom-on-output t)
+  (setq comint-move-point-for-output t)
+  (setq comint-scroll-show-maximum-output t)
+
+  (setq ess-ask-for-ess-directory nil)
+  (setq ess-startup-directory 'default-directory)
+
+  ;; Trying to speed up ess on orgmode
+  (setq ess-eval-visibly-p 'nowait)
+
+  (setq display-buffer-alist
+	'(("^\\*R[:\\*]" . (display-buffer-in-side-window
+			    (side . bottom)
+			    (slot . -1)
+			    ))
+	  ("^\\*R dired\\*" . (display-buffer-in-side-window
+			       (side . right)
+			       (slot . -1)
+			       (window-width . 0.25)))
+	  ("^\\*help\\[R\\]" . (display-buffer-in-side-window
+				(side . right)
+				(slot . 1)
+				(window-width . 0.33)))))
+
+  (define-key comint-mode-map (kbd "<up>") 'comint-previous-matching-input-from-input)
+  (define-key comint-mode-map (kbd "<down>") 'comint-next-matching-input-from-input)
+    )
