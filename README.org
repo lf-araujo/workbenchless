@@ -19,7 +19,7 @@ The main motivation is the increasing pay-to-use workbenches creeping in several
 
 * Running
 
-- In order to run this you need =emacs -q -f org-babel-load-file= and select this README.org, or substitute your init.el file with README.el (also provided).
+- In order to run this you need =emacs -q -f org-babel-load-file --init-dir .= and select this README.org, or substitute your init.el file with README.el (also provided).
 - Although most packages will be installed in the first run, pay attention to the warnings and manually install any remainder missing packages with =Ctrl-Shift-P package-install=. This is unlikely to happen.
 - The first run will take some time to compile packages, don't worry.
 - Vim mode is available, but not enabled. In order to enable it, go to the vim mode section and set :eval yes.
@@ -249,6 +249,33 @@ Although knowing to work in Emacs is not required (since which-key is active, an
 #+end_export
 
 ** Initial set up
+*** Early Init
+:PROPERTIES:
+:header-args:emacs-lisp: :tangle early-init.el
+:END:
+
+#+BEGIN_SRC emacs-lisp
+;;; early-init.el --- Minimal early init -*- lexical-binding: t; -*-
+
+(setq gc-cons-threshold most-positive-fixnum
+      file-name-handler-alist nil)
+
+(add-hook 'emacs-startup-hook
+          (lambda ()
+            (setq gc-cons-threshold (* 32 1024 1024)
+                  file-name-handler-alist
+                  (default-toplevel-value 'file-name-handler-alist))))
+
+(setq inhibit-startup-screen t
+      tool-bar-mode nil
+      menu-bar-mode nil
+      scroll-bar-mode nil)
+
+(set-language-environment "UTF-8")
+(setq default-input-method nil)
+
+(provide 'early-init)
+#+END_SRC
 
 #+begin_src emacs-lisp :session test :tangle yes
   ;; -*- lexical-binding: t -*-
