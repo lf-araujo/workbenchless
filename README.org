@@ -1483,6 +1483,32 @@ Although knowing to work in Emacs is not required (since which-key is active, an
   (setq org-latex-listings 'listings)           ;; older setting
 #+end_src
 
+** Org modern
+
+Prettify Org buffers (headings, lists, blocks and tables) with =org-modern=,
+lifted from the maintainer's personal configuration.
+
+#+begin_src emacs-lisp :tangle yes :results output none
+  (use-package org-modern
+    :ensure t
+    :after org
+    :custom
+    (org-auto-align-tags nil)
+    (org-tags-column 0)
+    (org-catch-invisible-edits 'show-and-error)
+    (org-special-ctrl-a/e t)
+    (org-insert-heading-respect-content t)
+    (org-hide-emphasis-markers t)
+    (org-pretty-entities t)
+    (org-ellipsis "…")
+    ;; Table aesthetics: visible column dividers and a thin header rule
+    (org-modern-table t)
+    (org-modern-table-vertical 1)      ; 1px column separators (kitty minimum)
+    (org-modern-table-horizontal 0.1)  ; fraction of line-height for ─ row lines
+    :config
+    (global-org-modern-mode))
+#+end_src
+
 ** Notebook mode
 
 Unfortunately =svg-tag-mode= is not automatically installed at the moment, open this org file and C-c C-c in this section and it will start working. The isssue now seems to be related to the async package that improves loading speed but causes this issue.

@@ -1,0 +1,50 @@
+name: Build AppImage
+
+# Builds the workbenchless AppImage (Emacs + config + pre-installed packages)
+# by running ci/build-appimage.sh on an Ubuntu runner. Artifacts are uploaded
+# on every run; pushing a tag like v30.2 additionally publishes a GitHub Release.
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+    inputs:
+      emacs_version:
+        description: 'Emacs version to build'
+        required: false
+        default: '30.2'
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    # ubuntu-22.04 gives an older glibc (2.35) for broad AppImage portability.
+    runs-on: ubuntu-22.04
+    timeout-minutes: 120
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Build AppImage
+        run: |
+          chmod +x ci/build-appimage.sh
+          ./ci/build-appimage.sh --version "${EMACS_VERSION}"
+        env:
+          EMACS_VERSION: ${{ github.event.inputs.emacs_version || '30.2' }}
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: workbenchless-appimage
+          path: workbenchless-*-x86_64.AppImage
+          if-no-files-found: error
+
+      - name: Publish release
+        if: startsWith(github.ref, 'refs/tags/')
+        uses: softprops/action-gh-release@v2
+        with:
+          files: workbenchless-*-x86_64.AppImage
+          fail_on_unmatched_files: true

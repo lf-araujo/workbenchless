@@ -1011,6 +1011,25 @@
   :hook (org-mode-hook . toc-org-mode)
   )
 
+(use-package org-modern
+  :ensure t
+  :after org
+  :custom
+  (org-auto-align-tags nil)
+  (org-tags-column 0)
+  (org-catch-invisible-edits 'show-and-error)
+  (org-special-ctrl-a/e t)
+  (org-insert-heading-respect-content t)
+  (org-hide-emphasis-markers t)
+  (org-pretty-entities t)
+  (org-ellipsis "…")
+  ;; Table aesthetics: visible column dividers and a thin header rule
+  (org-modern-table t)
+  (org-modern-table-vertical 1)      ; 1px column separators (kitty minimum)
+  (org-modern-table-horizontal 0.1)  ; fraction of line-height for ─ row lines
+  :config
+  (global-org-modern-mode))
+
 (use-package svg-tag-mode
       :ensure t
     :defer t
