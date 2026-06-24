@@ -2,12 +2,14 @@ name: Build AppImage
 
 # Builds the workbenchless AppImage (Emacs + config + pre-installed packages)
 # by running ci/build-appimage.sh on an Ubuntu runner. Artifacts are uploaded
-# on every run; pushing a tag like v30.2 additionally publishes a GitHub Release.
+# on every run; pushing a version tag (e.g. 0.3 or v30.2) additionally
+# publishes a GitHub Release with the AppImage attached.
 
 on:
   push:
     tags:
-      - 'v*'
+      - '[0-9]*'   # bare numeric tags, e.g. 0.3 (the repo's existing convention)
+      - 'v[0-9]*'  # v-prefixed tags, e.g. v30.2
   workflow_dispatch:
     inputs:
       emacs_version:
