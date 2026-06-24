@@ -195,6 +195,15 @@ if [[ -f "emacs-${APP_VERSION}/src/emacs.pdmp" ]]; then
 else
     echo "⚠ emacs.pdmp not found"
 fi
+
+# Sanity check: confirm the freshly built binary actually starts. This is the
+# first time we run it; do it unfiltered (no pipe/grep) so any startup error
+# (missing pdmp, missing shared lib, etc.) surfaces immediately and clearly.
+echo "  Verifying the built Emacs starts..."
+"${APPDIR}/usr/bin/emacs" --batch \
+    --dump-file="${ARCH_DIR}/emacs.pdmp" \
+    --eval '(princ (concat "emacs-start-ok " emacs-version "\n"))' \
+    || { echo "ERROR: the built Emacs binary failed to start"; exit 1; }
 echo ""
 
 ################################################################################
@@ -316,17 +325,28 @@ cat > "${WB_CONFIG}/bootstrap.el" <<'ELISP'
 (message "\n✓ Bootstrap complete. Installed packages are ready.")
 ELISP
 
-# Run the bootstrap with the freshly built Emacs
+# Run the bootstrap with the freshly built Emacs.
+# Full output is teed to a log; we read Emacs's own exit status via
+# PIPESTATUS (not the tee's) so a real failure is reported with its error,
+# instead of being hidden by a grep filter under `set -o pipefail`.
 echo "  Running headless Emacs to install packages (may take 10-20 min)..."
 HOME="${WB_CONFIG}" \
   "${APPDIR}/usr/bin/emacs" \
   --batch \
+  --dump-file="${ARCH_DIR}/emacs.pdmp" \
   --init-directory "${WB_CONFIG}" \
   --load "${WB_CONFIG}/bootstrap.el" \
-  2>&1 | grep -E "^(Installing|ERROR|✓|Byte|Refreshing|Compiling|Already)"
+  2>&1 | tee "${WB_CONFIG}/bootstrap.log"
+BOOTSTRAP_RC=${PIPESTATUS[0]}
+if [[ "${BOOTSTRAP_RC}" -ne 0 ]]; then
+    echo "ERROR: bootstrap Emacs exited with status ${BOOTSTRAP_RC}"
+    echo "─── last 40 lines of bootstrap output ───"
+    tail -n 40 "${WB_CONFIG}/bootstrap.log"
+    exit 1
+fi
 
-# Remove bootstrap script — not needed in the final AppImage
-rm -f "${WB_CONFIG}/bootstrap.el"
+# Remove bootstrap script + log — not needed in the final AppImage
+rm -f "${WB_CONFIG}/bootstrap.el" "${WB_CONFIG}/bootstrap.log"
 
 # Bundle config (with pre-installed elpa) into AppDir
 cp -r "${WB_CONFIG}" "${APPDIR}/config"
