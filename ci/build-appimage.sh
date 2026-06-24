@@ -196,14 +196,26 @@ else
     echo "⚠ emacs.pdmp not found"
 fi
 
-# Sanity check: confirm the freshly built binary actually starts. This is the
-# first time we run it; do it unfiltered (no pipe/grep) so any startup error
-# (missing pdmp, missing shared lib, etc.) surfaces immediately and clearly.
-echo "  Verifying the built Emacs starts..."
+# When the AppDir binary is run directly (before bundling), its baked-in
+# load-path points at the configure prefix (/usr/share/emacs/...), which does
+# not exist on the build host — so any (require ...) fails. Export the AppDir
+# lisp tree explicitly (the whole tree, so subdirs like lisp/emacs-lisp are
+# found), mirroring what the runtime AppRun does. Used for both the sanity
+# check below and the package bootstrap in Step 7.
+EMACS_LISP_ROOT="${APPDIR}/usr/share/emacs/${APP_VERSION}/lisp"
+export EMACSLOADPATH="$(find "${EMACS_LISP_ROOT}" -type d | paste -sd: -):${APPDIR}/usr/share/emacs/site-lisp"
+export EMACSDATA="${APPDIR}/usr/share/emacs/${APP_VERSION}/etc"
+export EMACSDOC="${APPDIR}/usr/share/emacs/${APP_VERSION}/etc"
+export EMACSPATH="${ARCH_DIR}"
+
+# Sanity check: confirm the freshly built binary actually starts AND can load
+# bundled Lisp. Do it unfiltered (no pipe/grep) so any startup or load-path
+# error surfaces immediately and clearly.
+echo "  Verifying the built Emacs starts and can load bundled Lisp..."
 "${APPDIR}/usr/bin/emacs" --batch \
     --dump-file="${ARCH_DIR}/emacs.pdmp" \
-    --eval '(princ (concat "emacs-start-ok " emacs-version "\n"))' \
-    || { echo "ERROR: the built Emacs binary failed to start"; exit 1; }
+    --eval '(progn (require (quote package)) (princ (concat "emacs-start-ok " emacs-version "\n")))' \
+    || { echo "ERROR: the built Emacs binary failed to start / load Lisp"; exit 1; }
 echo ""
 
 ################################################################################
