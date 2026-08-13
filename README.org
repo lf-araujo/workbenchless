@@ -166,85 +166,88 @@ Although knowing to work in Emacs is not required (since which-key is active, an
 :VISIBILITY: folded
 :END:
 
-#+begin_export beamer 
+#+begin_export beamer
 #+DATE: \today
 #+OPTIONS: toc:t H:2
 #+OPTIONS: ^:nil
 #+STARTUP: latexpreview beamer
-#+PROPERTY: header-args:R :exports both :tangle no
-#+CITE_EXPORT: csl chicago-fullnote-bibliography.csl
-#+BIBLIOGRAPHY: library.bib
 #+LANGUAGE: en
 #+LATEX_COMPILER: lualatex
+#+PROPERTY: header-args:R :exports both :tangle no
+#+bibliography: refs.bib
+#+cite_export: csl chicago-fullnote.csl
 #+LaTeX_CLASS_OPTIONS: [presentation, aspectratio=169, fragile]
 #+BEAMER_FONT_THEME: professionalfonts
-# #+BEAMER: \setmainfont{Roboto}
-#+BEAMER: \setbeamerfont{footnote}{size=\tiny}
-#+BEAMER: \setbeamercolor{itemize item}{fg=vcuyellow}
-#+BEAMER: \setbeamercolor{itemize subitem}{fg=vcuyellow}
-#+BEAMER: \setbeamercolor{itemize subsubitem}{fg=vcuyellow}
-#+BEAMER:  \setbeamertemplate{itemize item}[circle]
-#+BEAMER:  \setbeamertemplate{itemize subitem}[square]
-#+BEAMER:  \setbeamertemplate{itemize subsubitem}[triangle]
-#+BEAMER: \makeatletter
-#+BEAMER: \newsavebox{\mybox}
-#+BEAMER: \setbeamertemplate{frametitle}{
-#+BEAMER:  \nointerlineskip
-#+BEAMER:  \savebox{\mybox}{%
-#+BEAMER:      \begin{beamercolorbox}[%
-#+BEAMER:          wd=\paperwidth,%
-#+BEAMER:          sep=0pt,%
-#+BEAMER:          leftskip=\metropolis@frametitle@padding,%
-#+BEAMER:          rightskip=\metropolis@frametitle@padding,%
-#+BEAMER:        ]{frametitle}%
-#+BEAMER:      \metropolis@frametitlestrut@start\metropolis@frametitlestrut@end%
-#+BEAMER:      \end{beamercolorbox}%
-#+BEAMER:    }
-#+BEAMER:  \begin{beamercolorbox}[%
-#+BEAMER:      wd=\paperwidth,%
-#+BEAMER:      sep=0pt,%
-#+BEAMER:      leftskip=\metropolis@frametitle@padding,%
-#+BEAMER:      rightskip=\metropolis@frametitle@padding,%
-#+BEAMER:    ]{frametitle}%
-#+BEAMER:  \metropolis@frametitlestrut@start\insertframetitle\metropolis@frametitlestrut@end%
-#+BEAMER:  \hfill%
-#+BEAMER:  \raisebox{-\metropolis@frametitle@padding}{\includegraphics[height=\dimexpr\ht\mybox+\metropolis@frametitle@padding\relax]{style/VCU-Logo.png}}%
-#+BEAMER:    \hspace*{-\metropolis@frametitle@padding}
-#+BEAMER:  \end{beamercolorbox}%
-#+BEAMER: }
-#+BEAMER: \makeatother
-#+BEAMER:  \makeatletter
-#+BEAMER:  \pretocmd{\beamer@reseteecodes}{%
-#+BEAMER:    \ifbool{metropolis@standout}{
-#+BEAMER:      \endgroup
-#+BEAMER:      \boolfalse{metropolis@standout}
-#+BEAMER:    }{}
-#+BEAMER:  }{}{}
-#+BEAMER:  \makeatother
 #+latex_header: \usetheme[titleformat=smallcaps, sectionpage=progressbar]{metropolis}
-#+latex_header: \institute{Virginia Institute for Psychiatric and Behavioral Genetics  \& \\ The University of Melbourne  \& \\  Center of Data and Knowledge Integration for Health (CIDACS)}
+#+latex_header: \institute{Your Institute \& \\ Your Department}
 #+LATEX_HEADER: \usepackage{roboto}
+#+LATEX_HEADER: \usepackage{tabularx}
+#+LATEX_HEADER: \usepackage{listings}
+#+LATEX_HEADER: \usepackage{xcolor}
+#+LATEX_HEADER: \lstset{basicstyle=\ttfamily\tiny,keywordstyle=\color{blue},commentstyle=\color{gray},stringstyle=\color{orange},showstringspaces=false,breaklines=true,frame=none}
 #+LATEX_HEADER: \usepackage{appendixnumberbeamer}
 #+LATEX_HEADER: \usepackage{embedfile}
 #+LATEX_HEADER: \usepackage{fvextra}
-# #+LATEX_HEADER: \RecustomVerbatimEnvironment{verbatim}{Verbatim}{breaklines}
+#+LATEX_HEADER: \embedfile[afrelationship={/Source}]{presentation.org}
 #+LATEX_HEADER: \usepackage[font={tiny}]{caption}
-#+LATEX_HEADER: \embedfile[afrelationship={/Source}]{2024-VIPBG-seminar.org}
-#+LATEX_HEADER:  \titlegraphic{%
-#+LATEX_HEADER:  \hfill\includegraphics[width=3cm,height=1.6cm,keepaspectratio]{style/VCU-Logo.png}}
-#+LATEX_HEADER:  \definecolor{vcuyellow}{HTML}{FDBD10}
-#+LATEX_HEADER: \setbeamercolor{palette primary}{fg=vcuyellow, bg=black}
-#+LATEX_HEADER:  \setbeamercolor{frametitle}{fg=vcuyellow, bg=black}
+#+LATEX_HEADER: \setmainfont{Roboto}
+#+LATEX_HEADER: \setbeamerfont{footnote}{size=\tiny}
+#+LATEX_HEADER: \setbeamercolor{itemize item}{fg=accent}
+#+LATEX_HEADER: \setbeamercolor{itemize subitem}{fg=accent}
+#+LATEX_HEADER: \setbeamercolor{itemize subsubitem}{fg=accent}
+#+LATEX_HEADER:  \setbeamertemplate{itemize item}[circle]
+#+LATEX_HEADER:  \setbeamertemplate{itemize subitem}[square]
+#+LATEX_HEADER:  \setbeamertemplate{itemize subsubitem}[triangle]
+#+LATEX_HEADER: \makeatletter
+#+LATEX_HEADER: \newsavebox{\mybox}
+#+LATEX_HEADER: \setbeamertemplate{frametitle}{
+#+LATEX_HEADER:  \nointerlineskip
+#+LATEX_HEADER:  \savebox{\mybox}{%
+#+LATEX_HEADER:      \begin{beamercolorbox}[%
+#+LATEX_HEADER:          wd=\paperwidth,%
+#+LATEX_HEADER:          sep=0pt,%
+#+LATEX_HEADER:          ht=2.0ex,%
+#+LATEX_HEADER:          dp=0.9ex,%
+#+LATEX_HEADER:          leftskip=\metropolis@frametitle@padding,%
+#+LATEX_HEADER:          rightskip=\metropolis@frametitle@padding,%
+#+LATEX_HEADER:        ]{frametitle}%
+#+LATEX_HEADER:      \metropolis@frametitlestrut@start\metropolis@frametitlestrut@end%
+#+LATEX_HEADER:      \end{beamercolorbox}%
+#+LATEX_HEADER:    }
+#+LATEX_HEADER:  \begin{beamercolorbox}[%
+#+LATEX_HEADER:      wd=\paperwidth,%
+#+LATEX_HEADER:      sep=0pt,%
+#+LATEX_HEADER:          ht=2.0ex,%
+#+LATEX_HEADER:          dp=0.9ex,%
+#+LATEX_HEADER:      leftskip=\metropolis@frametitle@padding,%
+#+LATEX_HEADER:      rightskip=\metropolis@frametitle@padding,%
+#+LATEX_HEADER:    ]{frametitle}%
+#+LATEX_HEADER:  \metropolis@frametitlestrut@start\insertframetitle\metropolis@frametitlestrut@end%
+#+LATEX_HEADER:  \end{beamercolorbox}%
+#+LATEX_HEADER: }
+#+LATEX_HEADER: \makeatother
+#+LATEX_HEADER:  \makeatletter
+#+LATEX_HEADER:  \pretocmd{\beamer@reseteecodes}{%
+#+LATEX_HEADER:    \ifbool{metropolis@standout}{
+#+LATEX_HEADER:      \endgroup
+#+LATEX_HEADER:      \boolfalse{metropolis@standout}
+#+LATEX_HEADER:    }{}
+#+LATEX_HEADER:  }{}{}
+#+LATEX_HEADER:  \makeatother
+#+LATEX_HEADER:  \definecolor{accent}{HTML}{FDBD10}
+#+LATEX_HEADER: \setbeamercolor{palette primary}{fg=accent, bg=black}
+#+LATEX_HEADER:  \setbeamercolor{frametitle}{fg=accent, bg=black}
 #+LATEX_HEADER:  \setbeamercolor{titlelike}{fg=black}
-#+LATEX_HEADER:  \setbeamercolor{titlepage}{fg=black, bg=vcuyellow}
+#+LATEX_HEADER:  \setbeamercolor{titlepage}{fg=black, bg=accent}
 #+LATEX_HEADER:  \setbeamercolor{footnote}{bg=black}
 #+LATEX_HEADER:  \setbeamercolor{normal text}{fg=black}
-#+LATEX_HEADER:  \setbeamercolor{block title}{fg=black, bg=vcuyellow!40!white}
-# #+LATEX_HEADER:  \setbeamercolor{alerted text}{fg=black}
+#+LATEX_HEADER:  \setbeamercolor{block title}{fg=black, bg=accent!40!white}
+#+LATEX_HEADER:  \setbeamercolor{alerted text}{fg=black}
+#+LATEX_HEADER:  \setbeamerfont{alerted text}{series=\bfseries}
 #+LATEX_HEADER:  \setbeamercolor{example text}{fg=black}
-#+LATEX_HEADER:  \setbeamercolor{title separator}{fg = vcuyellow, bg=vcuyellow}
-#+LATEX_HEADER: \setbeamercolor{progress bar}{bg=white, fg=vcuyellow}
-#+LATEX_HEADER:  \setbeamercolor{progress bar in section page}{bg=white, fg=vcuyellow}
+#+LATEX_HEADER:  \setbeamercolor{title separator}{fg = accent, bg=accent}
+#+LATEX_HEADER: \setbeamercolor{progress bar}{bg=white, fg=accent}
+#+LATEX_HEADER:  \setbeamercolor{progress bar in section page}{bg=white, fg=accent}
 #+end_export
 
 

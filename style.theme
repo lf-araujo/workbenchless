@@ -20,6 +20,12 @@
 #+HTML_HEAD:     max-width: 720px;
 #+HTML_HEAD:     margin-top: 5em;
 #+HTML_HEAD:     margin-bottom: 5em;
+#+HTML_HEAD:     padding-right: 240px;
+#+HTML_HEAD: }
+#+HTML_HEAD:
+#+HTML_HEAD: /* Tables expand into the sidenote rail when wider than main column */
+#+HTML_HEAD: table {
+#+HTML_HEAD:     max-width: calc(100% + 240px);
 #+HTML_HEAD: }
 #+HTML_HEAD: 
 #+HTML_HEAD: b {
@@ -183,5 +189,167 @@
 #+HTML_HEAD: }
 #+HTML_HEAD: span.listing-number {
 #+HTML_HEAD:     font-weight: 500;
+#+HTML_HEAD: }
+#+HTML_HEAD:
+#+HTML_HEAD: /* --- Tufte-style sidenotes & margin notes ----------------------------- */
+#+HTML_HEAD: body { counter-reset: sidenote-counter; }
+#+HTML_HEAD: .sidenote, .marginnote {
+#+HTML_HEAD:     float: right;
+#+HTML_HEAD:     clear: right;
+#+HTML_HEAD:     margin-right: -240px;
+#+HTML_HEAD:     width: 220px;
+#+HTML_HEAD:     margin-top: 0.3em;
+#+HTML_HEAD:     margin-bottom: 0;
+#+HTML_HEAD:     font-size: 85%;
+#+HTML_HEAD:     line-height: 1.3em;
+#+HTML_HEAD:     font-family: "Roboto Condensed", sans-serif;
+#+HTML_HEAD:     position: relative;
+#+HTML_HEAD:     vertical-align: baseline;
+#+HTML_HEAD: }
+#+HTML_HEAD: .sidenote-number { counter-increment: sidenote-counter; }
+#+HTML_HEAD: .sidenote-number::after,
+#+HTML_HEAD: .sidenote::before {
+#+HTML_HEAD:     position: relative;
+#+HTML_HEAD:     vertical-align: baseline;
+#+HTML_HEAD: }
+#+HTML_HEAD: .sidenote-number::after {
+#+HTML_HEAD:     content: counter(sidenote-counter);
+#+HTML_HEAD:     font-size: 0.75em;
+#+HTML_HEAD:     top: -0.5em;
+#+HTML_HEAD:     left: 0.1em;
+#+HTML_HEAD:     font-weight: 500;
+#+HTML_HEAD:     color: #673AB7;
+#+HTML_HEAD: }
+#+HTML_HEAD: .sidenote::before {
+#+HTML_HEAD:     content: counter(sidenote-counter) " ";
+#+HTML_HEAD:     font-size: 0.75em;
+#+HTML_HEAD:     top: -0.5em;
+#+HTML_HEAD:     left: -0.1em;
+#+HTML_HEAD:     font-weight: 500;
+#+HTML_HEAD:     color: #673AB7;
+#+HTML_HEAD: }
+#+HTML_HEAD: input.margin-toggle { display: none; }
+#+HTML_HEAD: label.sidenote-number { display: inline-block; }
+#+HTML_HEAD: label.margin-toggle:not(.sidenote-number) { display: none; cursor: pointer; }
+#+HTML_HEAD:
+#+HTML_HEAD: /* --- Wide figures & margin figures (via #+ATTR_HTML: :class) ----------- */
+#+HTML_HEAD: div.figure:has(img.fullwidth) {
+#+HTML_HEAD:     width: calc(100% + 240px);
+#+HTML_HEAD: }
+#+HTML_HEAD: div.figure img.fullwidth {
+#+HTML_HEAD:     width: 100%;
+#+HTML_HEAD:     max-width: none;
+#+HTML_HEAD: }
+#+HTML_HEAD: /* Fullwidth figure with caption: caption sits in the rail ABOVE the image,
+#+HTML_HEAD:    image still spans the full text+rail width. */
+#+HTML_HEAD: div.figure:has(img.fullwidth):has(> p:nth-of-type(2)) {
+#+HTML_HEAD:     display: grid;
+#+HTML_HEAD:     grid-template-columns: 1fr 220px;
+#+HTML_HEAD:     column-gap: 20px;
+#+HTML_HEAD:     grid-template-areas:
+#+HTML_HEAD:         ".     caption"
+#+HTML_HEAD:         "image image";
+#+HTML_HEAD: }
+#+HTML_HEAD: div.figure:has(img.fullwidth):has(> p:nth-of-type(2)) > p:nth-of-type(1) {
+#+HTML_HEAD:     grid-area: image;
+#+HTML_HEAD:     margin: 0;
+#+HTML_HEAD: }
+#+HTML_HEAD: div.figure:has(img.fullwidth):has(> p:nth-of-type(2)) > p:nth-of-type(2) {
+#+HTML_HEAD:     grid-area: caption;
+#+HTML_HEAD:     margin: 0 0 0.3em 0;
+#+HTML_HEAD:     font-size: 85%;
+#+HTML_HEAD:     line-height: 1.3em;
+#+HTML_HEAD: }
+#+HTML_HEAD:
+#+HTML_HEAD: /* Fullwidth table: caption sits in the rail ABOVE the table, table is 960 wide */
+#+HTML_HEAD: table.fullwidth {
+#+HTML_HEAD:     width: calc(100% + 240px);
+#+HTML_HEAD:     max-width: none;
+#+HTML_HEAD: }
+#+HTML_HEAD: table.fullwidth > caption {
+#+HTML_HEAD:     caption-side: top;
+#+HTML_HEAD:     width: 220px;
+#+HTML_HEAD:     margin-left: auto;
+#+HTML_HEAD:     margin-right: 0;
+#+HTML_HEAD:     margin-bottom: 0.3em;
+#+HTML_HEAD:     text-align: left;
+#+HTML_HEAD:     font-size: 85%;
+#+HTML_HEAD:     line-height: 1.3em;
+#+HTML_HEAD:     font-family: "Roboto Condensed", sans-serif;
+#+HTML_HEAD: }
+#+HTML_HEAD:
+#+HTML_HEAD: div.figure:has(img.marginfigure) {
+#+HTML_HEAD:     float: right;
+#+HTML_HEAD:     clear: right;
+#+HTML_HEAD:     margin-right: -240px;
+#+HTML_HEAD:     width: 220px;
+#+HTML_HEAD:     font-family: "Roboto Condensed", sans-serif;
+#+HTML_HEAD: }
+#+HTML_HEAD: div.figure:has(img.marginfigure) img { width: 100%; }
+#+HTML_HEAD: div.figure:has(img.marginfigure) p {
+#+HTML_HEAD:     font-size: 85%;
+#+HTML_HEAD:     line-height: 1.3em;
+#+HTML_HEAD: }
+#+HTML_HEAD:
+#+HTML_HEAD: /* --- Collapsible code blocks ------------------------------------------ */
+#+HTML_HEAD: details.src-collapsed {
+#+HTML_HEAD:     border: .5px solid #555599;
+#+HTML_HEAD:     background-color: #f9f9ff;
+#+HTML_HEAD:     margin-bottom: 0.5em;
+#+HTML_HEAD: }
+#+HTML_HEAD: details.src-collapsed > summary {
+#+HTML_HEAD:     cursor: pointer;
+#+HTML_HEAD:     padding: 0.4em 1em;
+#+HTML_HEAD:     font-family: "Roboto Condensed", sans-serif;
+#+HTML_HEAD:     font-size: 0.95em;
+#+HTML_HEAD:     list-style: none;
+#+HTML_HEAD:     user-select: none;
+#+HTML_HEAD: }
+#+HTML_HEAD: details.src-collapsed > summary::-webkit-details-marker { display: none; }
+#+HTML_HEAD: details.src-collapsed > summary::before {
+#+HTML_HEAD:     content: "\25B6  ";
+#+HTML_HEAD:     font-size: 0.7em;
+#+HTML_HEAD:     color: #555599;
+#+HTML_HEAD:     margin-right: 0.4em;
+#+HTML_HEAD: }
+#+HTML_HEAD: details.src-collapsed[open] > summary::before { content: "\25BC  "; }
+#+HTML_HEAD: details.src-collapsed > div.org-src-container {
+#+HTML_HEAD:     border: none;
+#+HTML_HEAD:     margin: 0;
+#+HTML_HEAD:     padding: 0 1em 0.75em 1em;
+#+HTML_HEAD: }
+#+HTML_HEAD:
+#+HTML_HEAD: /* --- Mobile / narrow viewport: hide margin until toggled -------------- */
+#+HTML_HEAD: @media (max-width: 1100px) {
+#+HTML_HEAD:     #content { padding-right: 0; }
+#+HTML_HEAD:     table { max-width: 100%; }
+#+HTML_HEAD:     .sidenote, .marginnote { display: none; }
+#+HTML_HEAD:     label.margin-toggle:not(.sidenote-number) { display: inline; color: #673AB7; }
+#+HTML_HEAD:     .margin-toggle:checked + .sidenote,
+#+HTML_HEAD:     .margin-toggle:checked + .marginnote {
+#+HTML_HEAD:         display: block;
+#+HTML_HEAD:         float: left;
+#+HTML_HEAD:         clear: both;
+#+HTML_HEAD:         width: 95%;
+#+HTML_HEAD:         margin: 1em 2.5%;
+#+HTML_HEAD:         vertical-align: baseline;
+#+HTML_HEAD:         position: relative;
+#+HTML_HEAD:     }
+#+HTML_HEAD:     div.figure:has(img.fullwidth),
+#+HTML_HEAD:     div.figure img.fullwidth { width: 100%; }
+#+HTML_HEAD:     div.figure:has(img.fullwidth):has(> p:nth-of-type(2)) {
+#+HTML_HEAD:         display: block;
+#+HTML_HEAD:     }
+#+HTML_HEAD:     div.figure:has(img.marginfigure) {
+#+HTML_HEAD:         float: none;
+#+HTML_HEAD:         margin: 1em 0;
+#+HTML_HEAD:         width: 100%;
+#+HTML_HEAD:     }
+#+HTML_HEAD:     table.fullwidth { width: 100%; }
+#+HTML_HEAD:     table.fullwidth > caption {
+#+HTML_HEAD:         width: auto;
+#+HTML_HEAD:         margin: 0;
+#+HTML_HEAD:         text-align: left;
+#+HTML_HEAD:     }
 #+HTML_HEAD: }
 #+HTML_HEAD: </style>
