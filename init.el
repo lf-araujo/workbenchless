@@ -925,7 +925,6 @@
   :hook ((org-mode . visual-line-mode)  ; wrap lines at word breaks
 	 (org-mode . flyspell-mode))    ; spell checking!
 	;; (org-mode . toc-org-mode)
-        ;; (org-mode . svg-tag-mode))    ; notebook mode
 
   :bind (:map global-map
 	      ("C-c l s" . org-store-link)          ; Mnemonic: link → store
@@ -1136,222 +1135,77 @@
   :config
   (global-org-modern-mode))
 
-(use-package svg-tag-mode
-  :ensure t
-  :demand t)
+;; Mouse maps for notebook-style interactions
+(defvar my/nb-run-map
+  (let ((map (make-sparse-keymap)))
+    (define-key map [mouse-1]
+      (lambda (e) (interactive "e")
+        (mouse-set-point e)
+        (org-ctrl-c-ctrl-c)
+        (org-redisplay-inline-images)))
+    map)
+  "Click #+begin_src to execute the block.")
 
-(require 'svg-tag-mode)
+(defvar my/nb-edit-map
+  (let ((map (make-sparse-keymap)))
+    (define-key map [mouse-1]
+      (lambda (e) (interactive "e")
+        (mouse-set-point e)
+        (org-edit-src-code)))
+    map)
+  "Click :session to open org-edit-src.")
 
-;; Prevent errors if something tries to set svg-tag-tags early
-;;(unless (boundp 'svg-tag-tags)
- ;; (setq svg-tag-tags nil))
+(defun my/nb-font-lock-setup ()
+  "Add interactive text properties on src block header args."
+  (dolist (prop '(mouse-face help-echo keymap display))
+    (add-to-list 'font-lock-extra-managed-props prop))
+  (font-lock-add-keywords
+   nil
+   `(;; #+begin_src → click to run
+     ("^\\(#\\+begin_src\\)"
+      (1 '(face org-meta-line
+           mouse-face highlight
+           help-echo "mouse-1: run this block"
+           keymap ,my/nb-run-map)
+         prepend))
+     ;; :session → click to open source editor
+     ("\\(:[Ss]ession\\)"
+      (1 (list 'face 'org-meta-line
+               'mouse-face 'highlight
+               'help-echo "mouse-1: open source editor"
+               'keymap my/nb-edit-map)
+         t)))
+   'append)
+  (font-lock-flush))
 
-        (defgroup notebook nil
-            "Customization options for `notebook-mode'."
-            :group 'org)
+(add-hook 'org-mode-hook #'my/nb-font-lock-setup)
 
-          (defcustom notebook-babel-python-command
-            "/opt/anaconda3/bin/python"
-            "Python interpreter's path."
-            :group 'notebook)
+;; Notebook convenience commands
+(defalias 'notebook-export-html 'org-html-export-to-html)
+(defalias 'notebook-run 'org-babel-execute-buffer)
 
-          (defcustom notebook-cite-csl-styles-dir
-            "."
-            "CSL styles citations' directory."
-            :group 'notebook)
+(defun run-all-setup-blocks ()
+  "Run all source blocks named `setup' in the current Org buffer."
+  (interactive)
+  (org-element-map (org-element-parse-buffer) 'src-block
+    (lambda (src)
+      (let ((name (org-element-property :name src)))
+        (when (and name (string= name "setup"))
+          (save-excursion
+            (goto-char (org-element-property :begin src))
+            (org-babel-execute-src-block)))))))
 
-        (defcustom notebook-tags
-          '(
-            ;; Inline code
-            ;; --------------------------------------------------------------------
-            ("^#\\+call:" .     ((lambda (tag) (svg-tag-make "CALL"
-                                                             :face 'org-meta-line))
-                                 (lambda () (interactive) (notebook-call-at-point)) "Call function"))
-            ("call_" .         ((lambda (tag) (svg-tag-make "CALL"
-                                                            :face 'default
-                                                            :margin 1
-                                                            :alignment 0))
-                                (lambda () (interactive) (notebook-call-at-point)) "Call function"))
-            ("src_" .          ((lambda (tag) (svg-tag-make "CALL"
-                                                            :face 'default
-                                                            :margin 1
-                                                            :alignment 0))
-                                (lambda () (interactive) (notebook-call-at-point)) "Execute code"))
+(use-package org-poster
+  :vc (:url "https://github.com/lf-araujo/org-poster" :rev :newest)
+  :defer t)
 
-            ;; Code blocks
-            ;; --------------------------------------------------------------------
-            ("^#\\+begin_src\\( [a-zA-Z\-]+\\)" .  ((lambda (tag)
-                                                      (svg-tag-make (upcase tag)
-                                                                    :face 'org-meta-line
-                                                                    :crop-left t))))
-            ("^#\\+begin_src" . ((lambda (tag) (svg-tag-make "RUN"
-                                                             :face 'org-meta-line
-                                                             :inverse t
-                                                             :crop-right t))
-                                 (lambda () (interactive) (notebook-run-at-point)) "Run code block"))
-            ("^#\\+end_src" .    ((lambda (tag) (svg-tag-make "END"
-                                                              :face 'org-meta-line))))
-            (":session" . ((lambda (tag) (svg-tag-make "ZOOM-IN"
-                                                       :face 'org-meta-line
-                                                       :inverse t
-                                                       :crop-right t))
-                           (lambda () (interactive) (org-edit-src-code)) "Zoom-in"))
+(use-package orcid-cv
+  :vc (:url "https://github.com/lf-araujo/orcid-cv" :rev :newest)
+  :defer t)
 
-
-
-            ;; Export blocks
-            ;; --------------------------------------------------------------------
-            ("^#\\+begin_export" . ((lambda (tag) (svg-tag-make "EXPORT"
-                                                                :face 'org-meta-line
-                                                                :inverse t
-                                                                :alignment 0
-                                                                :crop-right t))))
-            ("^#\\+begin_export\\( [a-zA-Z\-]+\\)" .  ((lambda (tag)
-                                                         (svg-tag-make (upcase tag)
-                                                                       :face 'org-meta-line
-                                                                       :crop-left t))))
-            ("^#\\+end_export" . ((lambda (tag) (svg-tag-make "END"
-                                                              :face 'org-meta-line))))
-
-            ;; :noexport: tag
-            ;; --------------------------------------------------------------------
-            ("\\(:no\\)export:" .    ((lambda (tag) (svg-tag-make "NO"
-                                                                  :face 'org-meta-line
-                                                                  :inverse t
-                                                                  :crop-right t))))
-            (":no\\(export:\\)" .    ((lambda (tag) (svg-tag-make "EXPORT"
-                                                                  :face 'org-meta-line
-                                                                  :crop-left t))))
-
-            ;; Miscellaneous keywords
-            ;; --------------------------------------------------------------------
-            ("|RUN|" .          ((lambda (tag) (svg-tag-make "RUN"
-                                                             :face 'org-meta-line
-                                                             :inverse t))))
-            ("|RUN ALL|" .       ((lambda (tag) (svg-tag-make "RUN ALL"
-                                                              :face 'org-meta-line))
-                                  (lambda () (interactive) (notebook-run)) "Run all notebook code blocks"))
-            ("|SETUP|" .         ((lambda (tag) (svg-tag-make "SETUP"
-                                                              :face 'org-meta-line))
-                                  (lambda () (interactive) (org-sbe "setup")) "Setup notebook environment"))
-            ("|ZOOM-IN-CODE|" .       ((lambda (tag) (svg-tag-make "ZOOM-IN"
-                                                                   :face 'org-meta-line))
-                                       (lambda () (interactive) (org-edit-src-code)) "Zoom-in"))
-
-            ("|EXPORT|" .        ((lambda (tag) (svg-tag-make "EXPORT"
-                                                              :face 'org-meta-line))
-                                  (lambda () (interactive) (notebook-export-html)) "Export the notebook to HTML"))
-            ("|CALL|" .          ((lambda (tag) (svg-tag-make "CALL"
-                                                              :face 'org-meta-line))))
-
-
-            ;; References
-            ;; --------------------------------------------------------------------
-            ("\\(\\[cite:@[A-Za-z]+:\\)" .
-             ((lambda (tag) (svg-tag-make (upcase tag)
-                                                ;            :face 'nano-default
-                                          :inverse t
-                                          :beg 7 :end -1
-                                          :crop-right t))))
-            ("\\[cite:@[A-Za-z]+:\\([0-9a-z]+\\]\\)" .
-             ((lambda (tag) (svg-tag-make (upcase tag)
-                                                ;            :face 'nano-default
-                                          :end -1
-                                          :crop-left t))))
-
-            ;; Miscellaneous properties
-            ;; --------------------------------------------------------------------
-            ("^#\\+caption:" .   ((lambda (tag) (svg-tag-make "CAPTION"
-                                                              :face 'org-meta-line))))
-            ("^#\\+latex:" .     ((lambda (tag) (svg-tag-make "LATEX"
-                                                              :face 'org-meta-line))))
-            ("^#\\+html:" .      ((lambda (tag) (svg-tag-make "HTML"
-                                                              :face 'org-meta-line))))
-            ("^#\\+name:" .      ((lambda (tag) (svg-tag-make "NAME"
-                                                              :face 'org-meta-line))))
-            ("^#\\+header:" .    ((lambda (tag) (svg-tag-make "HEADER"
-                                                              :face 'org-meta-line))))
-            ("^#\\+label:" .     ((lambda (tag) (svg-tag-make "LABEL"
-                                                              :face 'org-meta-line))))
-            ("^#\\+results:"  .  ((lambda (tag) (svg-tag-make "RESULTS"
-                                                              :face 'org-meta-line)))))
-          "The `notebook-mode' tags alist.
-               This alist is the `notebook-mode' specific tags list.  It follows the
-               same definition pattern as the `svg-tag-tags' alist (to which
-               `notebook-tags' is added)."
-          :group 'notebook)
-
-
-          (defcustom notebook-font-lock-case-insensitive t
-            "Make the keywords fontification case insensitive if non-nil."
-            :group 'notebook)
-
-          (defcustom notebook-indent t
-            "Default document indentation.
-                 If non-nil, `org-indent' is called when the mode is turned on."
-            :group 'notebook)
-
-          (defcustom notebook-hide-blocks t
-            "Default visibility of org blocks in `notebook-mode'.
-                 If non-nil, the org blocks are hidden when the mode is turned on."
-            :group 'notebook)
-
-          (defun notebook-run-at-point ()
-            "Update notebook rendering at point."
-            (interactive)
-            (org-ctrl-c-ctrl-c)
-            (org-redisplay-inline-images))
-
-          (defalias 'notebook-call-at-point 'org-ctrl-c-ctrl-c)
-
-          (defun notebook-setup ()
-            "Notebook mode setup function."
-            (interactive)
-            (setq org-cite-csl-styles-dir notebook-cite-csl-styles-dir)
-            (setq org-babel-python-command notebook-babel-python-command)
-            (require 'ob-python)
-            (require 'oc-csl))
-
-          (defalias 'notebook-run 'org-babel-execute-buffer)
-
-          (defalias 'notebook-export-html 'org-html-export-to-html)
-
-          (defun notebook-mode-on ()
-            "Activate notebook mode."
-
-            (add-to-list 'font-lock-extra-managed-props 'display)
-            (setq font-lock-keywords-case-fold-search notebook-font-lock-case-insensitive)
-            (setq org-image-actual-width `( ,(truncate (* (frame-pixel-width) 0.85))))
-            (setq org-startup-with-inline-images t)
-            ;(require 'svg-tag-mode)
-            (mapc #'(lambda (tag) (add-to-list 'svg-tag-tags tag)) notebook-tags)
-            (org-redisplay-inline-images)
-            (if notebook-indent (org-indent-mode))
-            (if notebook-hide-blocks (org-hide-block-all))
-            (add-hook 'org-babel-after-execute-hook 'org-redisplay-inline-images)
-            (svg-tag-mode 1)
-            (message "notebook mode on"))
-
-          (defun notebook-mode-off ()
-            "Deactivate notebook mode."
-
-            (svg-tag-mode -1)
-            (if notebook-indent (org-indent-mode -1))
-            (if notebook-hide-blocks (org-hide-block-all))
-            (remove-hook 'org-babel-after-execute-hook 'org-redisplay-inline-images))
-
-             ;;; autoload
-          (define-minor-mode notebook-mode
-            "Minor mode for graphical tag as rounded box."
-            :group 'notebook
-            (if notebook-mode
-                (notebook-mode-on)
-              (notebook-mode-off)))
-
-          (define-globalized-minor-mode
-            global-notebook-mode notebook-mode notebook-mode-on)
-
-        (add-hook 'org-mode-hook #'notebook-mode)
+(use-package org-tracked-docx
+  :vc (:url "https://github.com/lf-araujo/org-tracked-docx" :rev :newest)
+  :defer t)
 
 (use-package ess
   :ensure t

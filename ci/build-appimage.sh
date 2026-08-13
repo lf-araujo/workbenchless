@@ -241,7 +241,7 @@ WB_CONFIG="$(pwd)/workbenchless-config"
 # Use the checked-out repo (this script lives in it) as the config source.
 rm -rf "${WB_CONFIG}"
 mkdir -p "${WB_CONFIG}"
-cp "${REPO_ROOT}/README.el"   "${WB_CONFIG}/init.el"
+cp "${REPO_ROOT}/init.el"     "${WB_CONFIG}/init.el"
 cp "${REPO_ROOT}/README.org"  "${WB_CONFIG}/README.org" 2>/dev/null || true
 cp "${REPO_ROOT}/style.theme" "${WB_CONFIG}/style.theme" 2>/dev/null || true
 
@@ -275,7 +275,7 @@ cat > "${WB_CONFIG}/bootstrap.el" <<'ELISP'
 (message "Refreshing package contents...")
 (package-refresh-contents)
 
-;; All packages from README.el use-package declarations
+;; All packages from init.el use-package declarations
 ;; (copilot excluded: requires GitHub auth at runtime)
 (defvar wb-packages
   '(;; UI / completion
